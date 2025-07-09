@@ -15,7 +15,7 @@ if (WIN32)
   # copy dependency dlls
   get_filename_component(dep_dlls ${CMAKE_SOURCE_DIR} DIRECTORY)
   file(GLOB dep_dlls "${dep_dlls}/fwlib*.dll")
-  list(APPEND dep_dlls "${CMAKE_SOURCE_DIR}/extern/libconfig/build/out/Release/libconfig.dll")
+  list(APPEND dep_dlls "${CMAKE_SOURCE_DIR}/extern/libconfig/build/out/liblibconfig.dll")
   foreach(dep_dll IN LISTS dep_dlls)
     add_custom_command(TARGET fanuc_example POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${dep_dll} $<TARGET_FILE_DIR:fanuc_example>)
@@ -33,3 +33,8 @@ else()
 endif()
 
 target_link_libraries(fanuc_example ${DEPS})
+
+# For Windows cross-compilation, explicitly link the FANUC library
+if (WIN32)
+  target_link_libraries(fanuc_example "${CMAKE_SOURCE_DIR}/../../Fwlib32.lib")
+endif()

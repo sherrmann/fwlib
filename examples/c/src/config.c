@@ -127,15 +127,14 @@ int read_arg_config(int argc, char *argv[], Config *conf) {
 int read_env_config(Config *conf) {
   int iTmp;
   char buf[100] = "";
-  char *pTmp = (char *)buf;
-  size_t n;
+  char *pTmp;
 
-  n = 100;
-  if (_dupenv_s(&pTmp, &n, "DEVICE_IP") == 0 && pTmp != NULL) {
+  pTmp = getenv("DEVICE_IP");
+  if (pTmp != NULL) {
     snprintf(conf->ip, 100, "%s", pTmp);
   }
-  n = 100;
-  if (_dupenv_s(&pTmp, &n, "DEVICE_PORT") == 0 && pTmp != NULL) {
+  pTmp = getenv("DEVICE_PORT");
+  if (pTmp != NULL) {
     if ((iTmp = atoi(pTmp)) > 0 && iTmp < 65535) {
       conf->port = iTmp;
     }

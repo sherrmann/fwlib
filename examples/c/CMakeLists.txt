@@ -25,15 +25,15 @@ if (WIN32)
 
   # requires manually building libconfig
   # `mkdir build` and `cd build`
-  # `cmake -A Win32 ..`
-  # `cmake --build . --config Release`
+  # `cmake -DCMAKE_TOOLCHAIN_FILE=../mingw-toolchain.cmake ..`
+  # `make -j$(nproc)`
   add_library(config SHARED IMPORTED)
   set_target_properties(config PROPERTIES
       LINKER_LANGUAGE C
       PREFIX ""
       SUFFIX ""
-      IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/extern/libconfig/build/out/Release/libconfig.dll"
-      IMPORTED_IMPLIB "${CMAKE_SOURCE_DIR}/extern/libconfig/build/out/Release/libconfig.lib"
+      IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/extern/libconfig/build/out/liblibconfig.dll"
+      IMPORTED_IMPLIB "${CMAKE_SOURCE_DIR}/extern/libconfig/build/out/liblibconfig.dll.a"
       INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/extern/libconfig/lib"
   )
 endif()

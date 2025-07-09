@@ -1,3 +1,141 @@
+# C Examples - Extended .gitignore
+# This complements the main .gitignore for C-specific build artifacts
+
+# ============================================================================
+# Build Directories
+# ============================================================================
+
+# Standard build directories
 build/
+build-windows/
+windows-release/
+Release/
+Debug/
+out/
+
+# CMake build variants
+cmake-build-*/
+Build/
+
+# ============================================================================
+# Development Tools
+# ============================================================================
+
+# clangd language server
 .clangd/
 compile_commands.json
+
+# ============================================================================
+# Windows Build System Artifacts
+# ============================================================================
+
+# Generated packages
+fanuc-windows-example-*.zip
+
+# Windows executables and libraries
+fanuc_example.exe
+*.exe
+*.dll
+*.lib
+liblibconfig.dll
+libconfig.dll
+
+# Object files
+*.o
+*.obj
+
+# ============================================================================
+# CMake Generated Files
+# ============================================================================
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+install_manifest.txt
+Testing/
+_deps/
+
+# ============================================================================
+# Dependency Build Artifacts
+# ============================================================================
+
+# libconfig builds
+extern/libconfig/build/
+extern/libconfig/out/
+
+# GoogleTest builds  
+extern/googletest/build/
+extern/googletest/out/
+
+# FFF builds
+extern/fff/build/
+
+# ============================================================================
+# IDE Files
+# ============================================================================
+
+# Visual Studio Code
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/c_cpp_properties.json
+
+# Visual Studio
+*.vcxproj.user
+*.sln.docstates
+.vs/
+
+# CLion
+.idea/
+
+# ============================================================================
+# Runtime and Debug Files
+# ============================================================================
+
+# FANUC FOCAS logs
+focas.log
+*.log
+
+# Debug files
+*.pdb
+*.ilk
+*.dSYM/
+
+# Core dumps
+core
+core.*
+
+# ============================================================================
+# Test Files
+# ============================================================================
+
+# Test executables
+test_*
+*_test
+*_tests.exe
+
+# Test results
+test-results/
+test-output/
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+
+# Temporary directories
+tmp/
+temp/
+.tmp/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+*~
+
+# Archive files
+*.zip
+*.tar.gz
+*.7z
