@@ -100,6 +100,11 @@ jobs:
         findstr /C:"FANUC FOCAS Library Example" help_output.txt && echo ✅ Found title
         findstr /C:"Usage:" help_output.txt && echo ✅ Found usage line
         findstr /C:"--ip=" help_output.txt && echo ✅ Found IP parameter
+        findstr /C:"--info=" help_output.txt && echo ✅ Found info parameter
+        findstr /C:"--verbose" help_output.txt && echo ✅ Found verbose parameter
+        findstr /C:"all      - All available information" help_output.txt && echo ✅ Found info type 'all'
+        findstr /C:"basic    - Machine ID and status only" help_output.txt && echo ✅ Found info type 'basic'
+        findstr /C:"position - Tool position data" help_output.txt && echo ✅ Found info type 'position'
         
         echo.
         echo ===== Testing Version Information =====
@@ -131,6 +136,28 @@ jobs:
         echo Timeout exit code: %ERRORLEVEL% (expected due to timeout)
         echo Valid IP should show connection attempt message:
         findstr /C:"Connecting to FANUC machine at 192.168.1.100:8193" valid_ip_output.txt && echo ✅ Found connection message
+        
+        echo.
+        echo ===== Testing New Info Type Options =====
+        echo Testing --info=basic option:
+        timeout 3 fanuc_example.exe --ip=192.168.1.100 --info=basic > info_basic_output.txt 2>&1
+        echo Timeout exit code: %ERRORLEVEL% (expected due to timeout)
+        findstr /C:"Information type: basic" info_basic_output.txt && echo ✅ Found info type basic
+        
+        echo Testing --info=position option:
+        timeout 3 fanuc_example.exe --ip=192.168.1.100 --info=position > info_position_output.txt 2>&1
+        echo Timeout exit code: %ERRORLEVEL% (expected due to timeout)
+        findstr /C:"Information type: position" info_position_output.txt && echo ✅ Found info type position
+        
+        echo Testing --verbose option:
+        timeout 3 fanuc_example.exe --ip=192.168.1.100 --verbose > verbose_output.txt 2>&1
+        echo Timeout exit code: %ERRORLEVEL% (expected due to timeout)
+        findstr /C:"Information type: all" verbose_output.txt && echo ✅ Found verbose output
+        
+        echo Testing combined options:
+        timeout 3 fanuc_example.exe --ip=192.168.1.100 --info=alarm --verbose > combined_output.txt 2>&1
+        echo Timeout exit code: %ERRORLEVEL% (expected due to timeout)
+        findstr /C:"Information type: alarm" combined_output.txt && echo ✅ Found combined options
         
         echo.
         echo ===== Executable Info =====
@@ -166,6 +193,10 @@ jobs:
             @{ Pattern = "Usage:.*OPTIONS"; Description = "Usage line" },
             @{ Pattern = "--ip=<ip_address>.*required"; Description = "IP parameter help" },
             @{ Pattern = "--port=<port_number>.*default: 8193"; Description = "Port parameter help" },
+            @{ Pattern = "--info=<type>.*Information to display"; Description = "Info parameter help" },
+            @{ Pattern = "--verbose.*Enable verbose output"; Description = "Verbose parameter help" },
+            @{ Pattern = "all.*All available information"; Description = "Info type 'all'" },
+            @{ Pattern = "basic.*Machine ID and status only"; Description = "Info type 'basic'" },
             @{ Pattern = "--help.*Show this help message"; Description = "Help parameter" }
         )
         
@@ -247,6 +278,44 @@ jobs:
         - **Built**: ${{ env.TIMESTAMP }} UTC
         - **Workflow**: [View build logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
         
+        ## 📦 Package Contents
+        - **Executable**: fanuc_example.exe (${EXEC_SIZE_KB}KB)
+        - **Libraries**: Fwlib32.dll, liblibconfig.dll
+        - **Documentation**: README.md
+        
+        ## ✨ Features
+        - **Enhanced Information Display**: Multiple display modes (--info=basic/program/position/speed/alarm/all)
+        - **Verbose Output**: Detailed logging with --verbose flag
+        - **Position Monitoring**: Real-time tool position data (X, Y, Z coordinates)
+        - **Speed Monitoring**: Current feed rate and spindle speed
+        - **Alarm Detection**: Active alarm status monitoring
+        - **Sequence Tracking**: Current program line/sequence number
+        - **Flexible Output**: Choose exactly what information to display
+        
+        ## 🚀 Usage Examples
+        \`\`\`cmd
+        # Basic machine status only
+        fanuc_example.exe --ip=192.168.1.100 --info=basic
+        
+        # Position information with verbose output
+        fanuc_example.exe --ip=192.168.1.100 --info=position --verbose
+        
+        # All information (default)
+        fanuc_example.exe --ip=192.168.1.100
+        
+        # Check only alarm status
+        fanuc_example.exe --ip=192.168.1.100 --info=alarm
+        \`\`\`
+        
+        ## 🔧 Technical Details
+        - **Architecture**: Windows 32-bit (PE32)
+        - **Compiler**: MinGW-w64 GCC (cross-compiled on Ubuntu)
+        - **FOCAS Version**: Official FANUC library
+        - **Dependencies**: libconfig for configuration management
+        
+        ---
+        *This build was automatically generated and tested by GitHub Actions.*
+        EOF
         
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2

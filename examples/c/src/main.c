@@ -14,13 +14,23 @@ void show_usage(const char *program_name) {
   printf("  --ip=<ip_address>        CNC machine IP address (required)\n");
   printf("  --port=<port_number>     CNC machine port (default: 8193)\n");
   printf("  --config=<config_file>   Read settings from config file\n");
+  printf("  --info=<type>            Information to display:\n");
+  printf("                           all      - All available information (default)\n");
+  printf("                           basic    - Machine ID and status only\n");
+  printf("                           program  - Program information\n");
+  printf("                           position - Tool position data\n");
+  printf("                           speed    - Speed and feed rate data\n");
+  printf("                           alarm    - Alarm status\n");
+  printf("  --verbose                Enable verbose output\n");
   printf("  --help                   Show this help message\n");
   printf("  --version                Show version and build information\n\n");
   printf("Environment Variables:\n");
   printf("  DEVICE_IP                CNC machine IP address\n");
   printf("  DEVICE_PORT              CNC machine port\n\n");
-  printf("Example:\n");
+  printf("Examples:\n");
   printf("  %s --ip=192.168.1.100 --port=8193\n", program_name);
+  printf("  %s --ip=192.168.1.100 --info=basic\n", program_name);
+  printf("  %s --ip=192.168.1.100 --info=position --verbose\n", program_name);
 }
 
 void show_version() {
@@ -70,7 +80,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Show what configuration is being used
-  printf("Connecting to FANUC machine at %s:%d...\n", conf.ip, conf.port);
+  if (conf.verbose) {
+    printf("Connecting to FANUC machine at %s:%d...\n", conf.ip, conf.port);
+    printf("Information type: %s\n", conf.info_type);
+  } else {
+    printf("Connecting to FANUC machine at %s:%d...\n", conf.ip, conf.port);
+  }
 
   // Read complete machine information
   FocasResult result = read_complete_machine_info(&conf, &machine_info);
@@ -80,8 +95,8 @@ int main(int argc, char *argv[]) {
            focas_result_to_string(result));
   }
 
-  // Display machine information
-  print_machine_info(&machine_info);
+  // Display machine information based on info_type
+  print_selective_machine_info(&machine_info, conf.info_type);
 
   return EXIT_SUCCESS;
 }

@@ -1,7 +1,7 @@
 #include "./config.h"
 
 // Define the default configuration - empty IP requires explicit configuration
-const Config default_config = {"", 8193};
+const Config default_config = {"", 8193, "all", 0};
 
 #ifndef _WIN32
 #include <getopt.h>
@@ -12,10 +12,12 @@ const Config default_config = {"", 8193};
 #include <string.h>
 
 #ifdef _WIN32
-enum ARG_KEY{CONFIG, PORT, IP};
+enum ARG_KEY{CONFIG, PORT, IP, INFO, VERBOSE};
 const char *V_CONFIG = "--config=";
 const char *V_PORT = "--port=";
 const char *V_IP = "--ip=";
+const char *V_INFO = "--info=";
+const char *V_VERBOSE = "--verbose";
 
 int read_arg_config(int argc, char *argv[], Config *conf) {
   char ip[100] = "";
@@ -36,6 +38,12 @@ int read_arg_config(int argc, char *argv[], Config *conf) {
       key = PORT;
     } else if (strncmp(arg, V_IP, l = strlen(V_IP)) == 0) {
       key = IP;
+    } else if (strncmp(arg, V_INFO, l = strlen(V_INFO)) == 0) {
+      key = INFO;
+    } else if (strcmp(arg, V_VERBOSE) == 0) {
+      key = VERBOSE;
+      conf->verbose = 1;
+      continue; // No value to parse for verbose flag
     } else {
       fprintf(stderr, "unrecognized argument: \"%s\"\n", arg);
       return 1;
@@ -62,6 +70,10 @@ int read_arg_config(int argc, char *argv[], Config *conf) {
       }
       case IP: {
         snprintf(ip, 100, "%s", v);
+        break;
+      }
+      case INFO: {
+        snprintf(conf->info_type, 20, "%s", v);
         break;
       }
     }
