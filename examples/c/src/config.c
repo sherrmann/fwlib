@@ -1,7 +1,7 @@
 #include "./config.h"
 
-// Define the default configuration
-const Config default_config = {"127.0.0.1", 8193};
+// Define the default configuration - empty IP requires explicit configuration
+const Config default_config = {"", 8193};
 
 #ifndef _WIN32
 #include <getopt.h>

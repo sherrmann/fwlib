@@ -82,21 +82,35 @@ jobs:
         dir
         
         echo.
-        echo ===== Testing Help/Usage =====
-        fanuc_example.exe --help || echo Expected help error
+        echo ===== Testing Help with --help flag =====
+        fanuc_example.exe --help > help_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL%
+        echo Help output should contain usage information:
+        findstr /C:"FANUC FOCAS Library Example" help_output.txt && echo ✅ Found title
+        findstr /C:"Usage:" help_output.txt && echo ✅ Found usage line
+        findstr /C:"--ip=" help_output.txt && echo ✅ Found IP parameter
+        
+        echo.
+        echo ===== Testing Help with no arguments =====
+        fanuc_example.exe > no_args_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL% (should be non-zero)
+        echo No-args output should contain error and help:
+        findstr /C:"No FANUC machine IP address specified" no_args_output.txt && echo ✅ Found error message
+        findstr /C:"Usage:" no_args_output.txt && echo ✅ Found usage in error output
         
         echo.
         echo ===== Testing Invalid Arguments =====  
-        fanuc_example.exe --invalid || echo Expected argument error
+        fanuc_example.exe --invalid > invalid_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL% (should be non-zero)
+        echo Invalid args should show error
         
         echo.
-        echo ===== Testing Connection to Invalid IP =====
-        echo This should show our enhanced error messages:
-        fanuc_example.exe --ip=192.168.99.99 --port=8193 || echo Expected connection error
-        
-        echo.
-        echo ===== Testing Different Port =====
-        fanuc_example.exe --ip=127.0.0.1 --port=1234 || echo Expected connection error
+        echo ===== Testing Valid IP Format (no connection attempt) =====
+        echo This test validates argument parsing without network calls
+        timeout 3 fanuc_example.exe --ip=192.168.1.100 --port=8193 > valid_ip_output.txt 2>&1
+        echo Timeout exit code: %ERRORLEVEL% (expected due to timeout)
+        echo Valid IP should show connection attempt message:
+        findstr /C:"Connecting to FANUC machine at 192.168.1.100:8193" valid_ip_output.txt && echo ✅ Found connection message
         
         echo.
         echo ===== Executable Info =====
@@ -112,12 +126,54 @@ jobs:
         Write-Host "`nPackage contents:" -ForegroundColor Yellow
         Get-ChildItem
         
-        # Test error -16 (socket error) 
-        Write-Host "`nTesting network error (should show enhanced message):" -ForegroundColor Yellow
-        # Connection failure is expected - don't let it fail the workflow
-        $process = Start-Process -FilePath "./fanuc_example.exe" -ArgumentList "--ip=192.168.99.99","--port=8193" -Wait -PassThru -NoNewWindow
-        Write-Host "Exit code: $($process.ExitCode) (expected: non-zero for connection failure)" -ForegroundColor Gray
-        Write-Host "Test completed - connection failure is expected behavior" -ForegroundColor Gray
+        # Test no arguments - should show help
+        Write-Host "`nTesting no arguments (should show help):" -ForegroundColor Yellow
+        $process = Start-Process -FilePath "./fanuc_example.exe" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "output_no_args.txt" -RedirectStandardError "error_no_args.txt"
+        Write-Host "Exit code: $($process.ExitCode) (expected: 1 for missing IP)" -ForegroundColor Gray
+        
+        # Check for expected help output
+        $output = ""
+        if (Test-Path "output_no_args.txt") { $output += Get-Content "output_no_args.txt" -Raw }
+        if (Test-Path "error_no_args.txt") { $output += Get-Content "error_no_args.txt" -Raw }
+        
+        Write-Host "Captured output:" -ForegroundColor Gray
+        Write-Host $output -ForegroundColor Gray
+        
+        # Validate expected messages
+        $tests = @(
+            @{ Pattern = "No FANUC machine IP address specified"; Description = "Missing IP error message" },
+            @{ Pattern = "FANUC FOCAS Library Example"; Description = "Program title" },
+            @{ Pattern = "Usage:.*OPTIONS"; Description = "Usage line" },
+            @{ Pattern = "--ip=<ip_address>.*required"; Description = "IP parameter help" },
+            @{ Pattern = "--port=<port_number>.*default: 8193"; Description = "Port parameter help" },
+            @{ Pattern = "--help.*Show this help message"; Description = "Help parameter" }
+        )
+        
+        $passedTests = 0
+        foreach ($test in $tests) {
+            if ($output -match $test.Pattern) {
+                Write-Host "✅ $($test.Description): FOUND" -ForegroundColor Green
+                $passedTests++
+            } else {
+                Write-Host "❌ $($test.Description): MISSING" -ForegroundColor Red
+            }
+        }
+        
+        Write-Host "`nTest Results: $passedTests/$($tests.Count) passed" -ForegroundColor $(if ($passedTests -eq $tests.Count) { "Green" } else { "Yellow" })
+        
+        # Test --help flag specifically
+        Write-Host "`nTesting --help flag:" -ForegroundColor Yellow
+        $helpProcess = Start-Process -FilePath "./fanuc_example.exe" -ArgumentList "--help" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "output_help.txt"
+        Write-Host "Exit code: $($helpProcess.ExitCode) (expected: 0 for help)" -ForegroundColor Gray
+        
+        if (Test-Path "output_help.txt") {
+            $helpOutput = Get-Content "output_help.txt" -Raw
+            if ($helpOutput -match "FANUC FOCAS Library Example" -and $helpOutput -match "Usage:") {
+                Write-Host "✅ --help flag works correctly" -ForegroundColor Green
+            } else {
+                Write-Host "❌ --help flag output unexpected" -ForegroundColor Red
+            }
+        }
         
         Write-Host "`n✅ Windows executable testing completed!" -ForegroundColor Green
 
