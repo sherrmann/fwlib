@@ -8,10 +8,15 @@ echo "🔨 Building FANUC Windows Example with MinGW"
 echo "============================================"
 
 # Configuration
-PROJECT_ROOT="/workspaces/fwlib/examples/c"
+PROJECT_ROOT="$(pwd)"
 BUILD_DIR="build-windows"
 RELEASE_DIR="windows-release"
 TOOLCHAIN_FILE="mingw-toolchain.cmake"
+
+# Ensure we're in the examples/c directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -51,17 +56,21 @@ fi
 # Check if we're in the right directory
 if [ ! -f "CMakeLists.txt" ] || [ ! -f "src/main.c" ]; then
     print_error "Please run this script from the examples/c directory"
+    print_error "Current directory: $(pwd)"
+    print_error "Looking for: CMakeLists.txt and src/main.c"
+    ls -la
     exit 1
 fi
 
-# Navigate to project root
-cd "$PROJECT_ROOT"
 print_success "Working directory: $(pwd)"
 
 # Step 1: Initialize git submodules
 print_step "Initializing git submodules..."
 if [ ! -f "extern/libconfig/CMakeLists.txt" ]; then
+    # Go to repository root to initialize submodules
+    cd ../../
     git submodule update --init --recursive
+    cd examples/c
     print_success "Git submodules initialized"
 else
     print_success "Git submodules already initialized"
@@ -81,7 +90,6 @@ make -j$(nproc)
 print_success "libconfig built successfully"
 
 # Step 3: Build main project
-cd "$PROJECT_ROOT"
 print_step "Building main FANUC example..."
 
 if [ -d "$BUILD_DIR" ]; then
@@ -110,14 +118,25 @@ mkdir "$RELEASE_DIR"
 # Copy executable and dependencies
 cp "$BUILD_DIR/bin/fanuc_example.exe" "$RELEASE_DIR/"
 cp "$BUILD_DIR/bin/liblibconfig.dll" "$RELEASE_DIR/"
-cp "../../Fwlib32.dll" "$RELEASE_DIR/"
+
+# Copy FANUC DLL from repository root
+if [ -f "../../Fwlib32.dll" ]; then
+    cp "../../Fwlib32.dll" "$RELEASE_DIR/"
+    print_success "Copied Fwlib32.dll"
+else
+    print_warning "Fwlib32.dll not found at ../../Fwlib32.dll"
+    print_warning "Looking for FANUC DLLs in repository..."
+    find ../../ -name "*.dll" -type f | head -5
+fi
 
 # Copy configuration files if they exist
-if [ -f "$RELEASE_DIR/../config.cfg" ]; then
-    cp "$RELEASE_DIR/../config.cfg" "$RELEASE_DIR/"
+if [ -f "config.cfg" ]; then
+    cp "config.cfg" "$RELEASE_DIR/"
+    print_success "Copied config.cfg"
 fi
-if [ -f "$RELEASE_DIR/../README.md" ]; then
-    cp "$RELEASE_DIR/../README.md" "$RELEASE_DIR/"
+if [ -f "README.md" ]; then
+    cp "README.md" "$RELEASE_DIR/"
+    print_success "Copied README.md"
 fi
 
 print_success "Release package created in $RELEASE_DIR/"
