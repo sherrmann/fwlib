@@ -34,7 +34,11 @@ Each successful build creates a **complete release package**:
 - `fanuc_example.exe` - Windows executable with enhanced error messages
 - `liblibconfig.dll` - Configuration library dependency
 - **`Fwlib32.dll`** - Main FANUC FOCAS library
-- **All FANUC FOCAS DLLs** - Complete library set for maximum compatibility
+- **`Fwlib0i.dll`, `Fwlib0iB.dll`, `Fwlib150.dll`, `Fwlib15i.dll`** - FANUC series libraries
+- **`Fwlib160.dll`, `Fwlib16W.dll`, `fwlib30i.dll`** - More FANUC series libraries
+- **`Fwlibpm.dll`, `Fwlibpmi.dll`, `fwlibe1.dll`, `fwlibNCG.dll`** - FANUC extension libraries
+- **`fwlib0DN.dll`, `fwlib0iD.dll`** - Additional FANUC libraries
+- **Complete FANUC FOCAS library set** - All DLLs for maximum compatibility
 - `config.cfg` - Sample configuration file (if available)
 - `README.md` - Usage instructions (if available)
 

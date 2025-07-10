@@ -125,14 +125,25 @@ mkdir "$RELEASE_DIR"
 cp "$BUILD_DIR/bin/fanuc_example.exe" "$RELEASE_DIR/"
 cp "$BUILD_DIR/bin/liblibconfig.dll" "$RELEASE_DIR/"
 
-# Copy FANUC DLL from repository root
-if [ -f "../../Fwlib32.dll" ]; then
-    cp "../../Fwlib32.dll" "$RELEASE_DIR/"
-    print_success "Copied Fwlib32.dll"
+# Copy ALL FANUC DLLs from repository root
+print_step "Copying FANUC FOCAS DLLs..."
+FANUC_DLLS_COPIED=0
+
+for dll in ../../*.dll; do
+    if [ -f "$dll" ]; then
+        dll_name=$(basename "$dll")
+        cp "$dll" "$RELEASE_DIR/"
+        print_success "Copied $dll_name"
+        ((FANUC_DLLS_COPIED++))
+    fi
+done
+
+if [ $FANUC_DLLS_COPIED -eq 0 ]; then
+    print_error "No FANUC DLLs found in repository root!"
+    find ../../ -name "*.dll" -type f
+    exit 1
 else
-    print_warning "Fwlib32.dll not found at ../../Fwlib32.dll"
-    print_warning "Looking for FANUC DLLs in repository..."
-    find ../../ -name "*.dll" -type f | head -5
+    print_success "Copied $FANUC_DLLS_COPIED FANUC DLLs"
 fi
 
 # Copy configuration files if they exist
