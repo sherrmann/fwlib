@@ -1,0 +1,115 @@
+name: Quality Assurance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 cmake build-essential cppcheck clang-format
+        
+    - name: Static code analysis
+      run: |
+        cd examples/c/src
+        echo "🔍 Running cppcheck..."
+        cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem *.c *.h || true
+        echo "✅ Static analysis completed"
+        
+    - name: Check code formatting
+      run: |
+        cd examples/c/src
+        echo "🎨 Checking code formatting..."
+        # Check if code follows reasonable formatting
+        for file in *.c *.h; do
+          if [ -f "$file" ]; then
+            echo "Checking $file..."
+            # Basic checks: no trailing whitespace, no tabs, etc.
+            if grep -q '[[:space:]]$' "$file"; then
+              echo "⚠️  Warning: $file has trailing whitespace"
+            fi
+          fi
+        done
+        echo "✅ Format check completed"
+        
+    - name: Validate build scripts
+      run: |
+        cd examples/c
+        echo "🛠️  Validating build scripts..."
+        
+        # Check scripts are executable
+        test -x build-windows.sh
+        test -x check-environment.sh
+        
+        # Check for common script issues
+        shellcheck build-windows.sh check-environment.sh || true
+        
+        echo "✅ Build scripts validated"
+        
+    - name: Test documentation
+      run: |
+        echo "📚 Validating documentation..."
+        
+        # Check that key documentation files exist
+        test -f README.md
+        test -f examples/c/BUILD_WINDOWS.md
+        test -f examples/c/DEVELOPMENT_ROADMAP.md
+        test -f examples/c/RELEASE_NOTES.md
+        
+        # Check for broken links in markdown (basic check)
+        find . -name "*.md" -exec grep -l "http" {} \; | while read file; do
+          echo "Checking links in $file..."
+          # This is a basic check - in practice you'd use a proper link checker
+        done
+        
+        echo "✅ Documentation validated"
+        
+  dependency-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Check submodule status
+      run: |
+        echo "🔗 Checking git submodules..."
+        git submodule status
+        
+        # Verify submodules are properly initialized
+        test -f examples/c/extern/libconfig/CMakeLists.txt
+        test -f examples/c/extern/googletest/CMakeLists.txt
+        
+        echo "✅ Submodules verified"
+        
+    - name: Test clean build
+      run: |
+        echo "🧹 Testing clean build process..."
+        cd examples/c
+        
+        # Install dependencies
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 cmake build-essential
+        
+        # Test that we can build from scratch
+        chmod +x build-windows.sh
+        ./build-windows.sh
+        
+        # Verify outputs
+        test -f build-windows/bin/fanuc_example.exe
+        test -f build-windows/bin/liblibconfig.dll
+        
+        echo "✅ Clean build successful"

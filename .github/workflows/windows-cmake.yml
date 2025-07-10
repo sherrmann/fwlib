@@ -2,9 +2,8 @@ name: Windows CMake
 
 on:
   push:
-    paths:
-      - '.github/workflows/windows-cmake.yml'
-      - 'example/**'
+  pull_request:
+  workflow_dispatch:
 
 env:
   BUILD_TYPE: Release

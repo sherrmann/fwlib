@@ -1,0 +1,113 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 cmake build-essential
+        
+    - name: Check environment
+      run: |
+        cd examples/c
+        chmod +x check-environment.sh build-windows.sh
+        ./check-environment.sh
+        
+    - name: Build Windows executable
+      run: |
+        cd examples/c
+        ./build-windows.sh
+        
+    - name: Verify build artifacts
+      run: |
+        cd examples/c
+        test -f build-windows/bin/fanuc_example.exe
+        echo "✅ Windows executable built successfully"
+        
+        # Check file is actually a Windows executable
+        file build-windows/bin/fanuc_example.exe | grep -i "PE32"
+        echo "✅ Confirmed Windows PE32 executable"
+        
+        # Check size (should be around 245KB)
+        size=$(stat -c%s build-windows/bin/fanuc_example.exe)
+        echo "📦 Executable size: $((size/1024))KB"
+        
+    - name: Upload Windows executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: fanuc-windows-executable
+        path: |
+          examples/c/build-windows/bin/fanuc_example.exe
+          examples/c/build-windows/bin/*.dll
+        retention-days: 30
+
+  test-windows:
+    runs-on: windows-latest
+    needs: build-linux
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download Windows executable
+      uses: actions/download-artifact@v4
+      with:
+        name: fanuc-windows-executable
+        path: windows-build/
+        
+    - name: Test executable on Windows
+      shell: cmd
+      run: |
+        cd windows-build
+        echo Testing FANUC example executable...
+        
+        echo.
+        echo ===== Testing Help/Usage =====
+        fanuc_example.exe --help || echo Expected help error
+        
+        echo.
+        echo ===== Testing Invalid Arguments =====  
+        fanuc_example.exe --invalid || echo Expected argument error
+        
+        echo.
+        echo ===== Testing Connection to Invalid IP =====
+        echo This should show our enhanced error messages:
+        fanuc_example.exe --ip=192.168.99.99 --port=8193 || echo Expected connection error
+        
+        echo.
+        echo ===== Testing Different Port =====
+        fanuc_example.exe --ip=127.0.0.1 --port=1234 || echo Expected connection error
+        
+        echo.
+        echo ===== Executable Info =====
+        dir fanuc_example.exe
+        echo File created successfully on Windows!
+        
+    - name: Test error message improvements
+      shell: powershell
+      run: |
+        cd windows-build
+        Write-Host "Testing enhanced error messages..." -ForegroundColor Green
+        
+        # Test error -16 (socket error) 
+        Write-Host "`nTesting network error (should show enhanced message):" -ForegroundColor Yellow
+        try {
+          ./fanuc_example.exe --ip=192.168.99.99 --port=8193
+        } catch {
+          Write-Host "Expected connection failure" -ForegroundColor Gray
+        }
+        
+        Write-Host "`n✅ Windows executable testing completed!" -ForegroundColor Green

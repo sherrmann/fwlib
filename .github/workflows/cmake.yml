@@ -2,9 +2,8 @@ name: CMake
 
 on:
   push:
-    paths:
-      - '.github/workflows/cmake.yml'
-      - 'examples/c/**'
+  pull_request:
+  workflow_dispatch:
 
 env:
   BUILD_TYPE: Release

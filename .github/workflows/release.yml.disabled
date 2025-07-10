@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.2.0)'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 cmake build-essential zip
+        
+    - name: Build Windows release
+      run: |
+        cd examples/c
+        chmod +x build-windows.sh check-environment.sh
+        ./build-windows.sh
+        
+    - name: Create release package
+      run: |
+        cd examples/c
+        
+        # Create comprehensive package directory
+        mkdir -p windows-release-package
+        
+        # Copy executable and DLLs
+        cp build-windows/bin/fanuc_example.exe windows-release-package/
+        cp build-windows/bin/*.dll windows-release-package/
+        
+        # Copy all FANUC DLLs from root
+        find ../../ -maxdepth 1 -name "*wlib*.dll" -exec cp {} windows-release-package/ \;
+        
+        # Create config file
+        echo 'ip = "192.168.1.100"' > windows-release-package/config.cfg
+        echo 'port = 8193' >> windows-release-package/config.cfg
+        
+        # Create package README
+        cat > windows-release-package/README.md << 'EOF'
+        # FANUC FOCAS Windows Executable
+        
+        ## Quick Start
+        ```cmd
+        fanuc_example.exe --ip=192.168.1.100 --port=8193
+        ```
+        
+        ## Enhanced Error Messages
+        This version provides helpful error descriptions for better troubleshooting.
+        
+        ## Configuration
+        - Command line: `fanuc_example.exe --ip=YOUR_IP --port=8193`
+        - Config file: Edit `config.cfg` and run `fanuc_example.exe --config=config.cfg`
+        - Environment: Set `DEVICE_IP` and `DEVICE_PORT` variables
+        
+        ## Troubleshooting
+        - Error -15: DLL not found → Run from this directory
+        - Error -16: Network/socket error → Check IP and port
+        - Error -17: Protocol error → Check CNC settings
+        
+        For full documentation: https://github.com/sherrmann/fwlib
+        EOF
+        
+        # Create ZIP package
+        zip -r "fanuc-windows-example-${GITHUB_REF#refs/tags/}.zip" windows-release-package/
+        
+    - name: Generate release notes
+      run: |
+        cd examples/c
+        
+        # Extract version
+        VERSION=${GITHUB_REF#refs/tags/}
+        
+        # Generate release notes
+        cat > release-notes.md << EOF
+        # FANUC FOCAS Windows Release ${VERSION}
+        
+        ## 🎉 What's New
+        - Enhanced error messages for better troubleshooting
+        - Complete FANUC FOCAS library collection
+        - Cross-compiled Windows executable (32-bit)
+        - Comprehensive package with all dependencies
+        
+        ## 📦 Package Contents
+        - \`fanuc_example.exe\` - Main Windows executable (245KB)
+        - **All FANUC DLLs** - Complete FOCAS library set
+        - \`liblibconfig.dll\` - Configuration library
+        - \`config.cfg\` - Sample configuration
+        - \`README.md\` - Usage instructions
+        
+        ## 🚀 Usage
+        1. Download and extract the ZIP file
+        2. Open Command Prompt in the extracted folder
+        3. Run: \`fanuc_example.exe --ip=YOUR_CNC_IP --port=8193\`
+        
+        ## 🔧 Enhanced Error Messages
+        Get helpful descriptions instead of error codes:
+        - **-15**: "DLL not exist error" - Run from extraction directory
+        - **-16**: "Windows socket error - Network/connection problem"  
+        - **-17**: "Protocol error" - Check CNC communication settings
+        
+        ## 🛠 Technical Details
+        - **Architecture**: 32-bit Windows (PE32)
+        - **Compiler**: MinGW-w64 cross-compiler
+        - **Dependencies**: All included (no external DLLs required)
+        - **Compatibility**: Windows 7+ (32-bit and 64-bit)
+        
+        ## 📋 What This Program Does
+        When successfully connected to a FANUC CNC:
+        1. Establishes Ethernet connection via FOCAS
+        2. Reads the unique CNC machine identifier
+        3. Displays: \`machine id: 12345678-9abcdef0-12345678-9abcdef0\`
+        
+        This is a foundation example for building more advanced FOCAS applications.
+        
+        ## 📚 Documentation & Development
+        - Build instructions: [\`BUILD_WINDOWS.md\`](https://github.com/sherrmann/fwlib/blob/master/examples/c/BUILD_WINDOWS.md)
+        - Development roadmap: [\`DEVELOPMENT_ROADMAP.md\`](https://github.com/sherrmann/fwlib/blob/master/examples/c/DEVELOPMENT_ROADMAP.md)
+        - Repository: https://github.com/sherrmann/fwlib
+        
+        ---
+        **Note**: Requires network access to FANUC CNC machines with FOCAS enabled.
+        EOF
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: examples/c/fanuc-windows-example-*.zip
+        body_path: examples/c/release-notes.md
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
