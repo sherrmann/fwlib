@@ -1,12 +1,12 @@
 #ifndef FW_CONFIG_H
 #define FW_CONFIG_H
 
-const struct config {
+typedef struct config {
   char ip[100];
   int port;
-} default_config = {"127.0.0.1", 8193};
+} Config;
 
-typedef struct config Config;
+extern const Config default_config;
 
 int read_config(int argc, char *argv[], Config *conf);
 int read_arg_config(int argc, char *argv[], Config *conf);

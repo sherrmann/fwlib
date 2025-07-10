@@ -1,4 +1,4 @@
-add_executable(fanuc_example main.c)
+add_executable(fanuc_example main.c machine_info.c util.c config.c)
 
 set(DEPS "fwlib32" "config")
 

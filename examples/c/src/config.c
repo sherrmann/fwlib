@@ -1,5 +1,8 @@
 #include "./config.h"
 
+// Define the default configuration
+const Config default_config = {"127.0.0.1", 8193};
+
 #ifndef _WIN32
 #include <getopt.h>
 #endif

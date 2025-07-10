@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "./config.c"
-#include "./util.c"
+#include "config.h"
+#include "util.h" 
+#include "machine_info.h"
 #include "fwlib32.h"
 
 int main(int argc, char *argv[]) {
-  char cncID[36];
+  MachineInfo machine_info;
   Config conf;
 
   if (read_config(argc, argv, &conf)) {
@@ -18,11 +19,18 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  if (retrieve_id(&conf, cncID)) {
-    return EXIT_FAILURE;
+  printf("connecting to machine at %s:%d...\n", conf.ip, conf.port);
+
+  // Read complete machine information
+  FocasResult result = read_complete_machine_info(&conf, &machine_info);
+  
+  if (result != FOCAS_OK) {
+    printf("Warning: Some information may be incomplete (%s)\n", 
+           focas_result_to_string(result));
   }
 
-  printf("machine id: %s\n", cncID);
+  // Display machine information
+  print_machine_info(&machine_info);
 
   return EXIT_SUCCESS;
 }
