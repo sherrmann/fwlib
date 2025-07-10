@@ -1,0 +1,35 @@
+MIT License
+
+Copyright (c) 2025 FOCAS Monitor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD PARTY LICENSES:
+
+This software uses the FANUC FOCAS library which is subject to FANUC's 
+licensing terms and conditions. The FANUC FOCAS library is proprietary 
+software owned by FANUC Corporation.
+
+Users must obtain proper licensing from FANUC Corporation to use the 
+FOCAS library in production environments.
+
+The FANUC library files (Fwlib32.dll, fwlib32.h, etc.) are not covered 
+by this MIT license and remain the property of FANUC Corporation.

@@ -30,6 +30,16 @@ target_compile_definitions(fanuc_example PRIVATE
 
 set(DEPS "fwlib32" "config")
 
+# Add multi-machine demo executable
+add_executable(multi_machine_demo multi_machine_demo.c connection_pool.c machine_info.c util.c config.c)
+
+# Add build information to multi-machine demo as well
+target_compile_definitions(multi_machine_demo PRIVATE
+  BUILD_COMMIT="${BUILD_COMMIT}"
+  BUILD_TIMESTAMP="${BUILD_TIMESTAMP}"
+  BUILD_VERSION="${BUILD_VERSION}"
+)
+
 if (WIN32)
   add_library(fwlib32 SHARED IMPORTED)
   set_target_properties(fwlib32 PROPERTIES
@@ -47,6 +57,8 @@ if (WIN32)
   foreach(dep_dll IN LISTS dep_dlls)
     add_custom_command(TARGET fanuc_example POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${dep_dll} $<TARGET_FILE_DIR:fanuc_example>)
+    add_custom_command(TARGET multi_machine_demo POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${dep_dll} $<TARGET_FILE_DIR:multi_machine_demo>)
   endforeach()
 else()
   find_library(FWLIB NAMES fwlib32 libfwlib32 HINTS "${CMAKE_SOURCE_DIR}/../../" REQUIRED)
@@ -61,8 +73,10 @@ else()
 endif()
 
 target_link_libraries(fanuc_example ${DEPS})
+target_link_libraries(multi_machine_demo ${DEPS})
 
 # For Windows cross-compilation, explicitly link the FANUC library
 if (WIN32)
   target_link_libraries(fanuc_example "${CMAKE_SOURCE_DIR}/../../Fwlib32.lib")
+  target_link_libraries(multi_machine_demo "${CMAKE_SOURCE_DIR}/../../Fwlib32.lib")
 endif()

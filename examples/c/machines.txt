@@ -1,0 +1,16 @@
+# FANUC Machine List Configuration
+# Format: name,ip,port
+# Lines starting with # are comments
+
+# Production Floor Machines
+Mill-01,192.168.1.100,8193
+Mill-02,192.168.1.101,8193
+Lathe-01,192.168.1.102,8193
+Lathe-02,192.168.1.103,8193
+
+# Development/Test Machines  
+TestMill,192.168.1.200,8193
+TestLathe,192.168.1.201,8193
+
+# Maintenance Area
+MaintenanceCNC,192.168.1.210,8193

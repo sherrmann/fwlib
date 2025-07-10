@@ -269,7 +269,6 @@ jobs:
         EXEC_SIZE_KB=$((EXEC_SIZE/1024))
         
         cat > release_notes.md << EOF
-        # 🚀 FANUC FOCAS Windows Build - ${{ env.TIMESTAMP }}
         
         ## 🔧 Build Information
         - **Commit**: [\`${{ env.COMMIT_SHORT }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
