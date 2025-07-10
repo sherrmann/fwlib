@@ -240,12 +240,6 @@ jobs:
         cat > release_notes.md << EOF
         # 🚀 FANUC FOCAS Windows Build - ${{ env.TIMESTAMP }}
         
-        ## 📦 Release Package
-        - **Executable Size**: ${EXEC_SIZE_KB}KB
-        - **Total Files**: ${TOTAL_FILES}
-        - **FANUC DLLs**: ${DLL_COUNT}
-        - **Release ZIP**: \`${{ env.ZIP_NAME }}\`
-        
         ## 🔧 Build Information
         - **Commit**: [\`${{ env.COMMIT_SHORT }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
         - **Message**: ${COMMIT_MESSAGE}
