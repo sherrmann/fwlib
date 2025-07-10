@@ -14,6 +14,7 @@ This repository has a **single, comprehensive CI/CD workflow** for building, tes
 - ✅ **Artifact Verification**: Checks executable format, dependencies, error messages
 - 📦 **Package Creation**: Creates comprehensive build packages with all DLLs
 - ⬆️ **Artifact Upload**: Preserves build outputs for download
+- 🚀 **Automatic Releases**: Creates GitHub releases for successful master builds
 
 ## 🚀 How to Use
 
@@ -27,6 +28,12 @@ This repository has a **single, comprehensive CI/CD workflow** for building, tes
 2. Click on any completed workflow run
 3. Download artifacts from the **Artifacts** section
 4. Extract and use the Windows executable package
+
+### **Download Releases (Master Branch)**
+1. Go to **Releases** section in GitHub
+2. Download the latest release ZIP file
+3. Each successful master build creates a new release with timestamp
+4. Format: `fanuc-focas-windows-YYYYMMDD-HHMMSS-commit.zip`
 
 ## 📦 Build Artifact Contents
 
@@ -65,6 +72,7 @@ The workflow includes **real Windows testing**:
 Check workflow status at:
 - **Main Workflow**: `https://github.com/USERNAME/fwlib/actions/workflows/test-pr.yml`
 - **All Runs**: `https://github.com/USERNAME/fwlib/actions`
+- **Latest Releases**: `https://github.com/USERNAME/fwlib/releases`
 
 ## 🎯 Key Benefits
 
@@ -73,6 +81,7 @@ Check workflow status at:
 ✅ **Real Testing**: Actual execution validation on Windows  
 ✅ **Simple Triggers**: Push, PR, manual - no tags or schedules  
 ✅ **Easy Downloads**: Build artifacts available from every run  
+✅ **Automatic Releases**: GitHub releases created for master builds  
 ✅ **Complete Packages**: All DLLs and dependencies included  
 
 ## 🔧 Customization
