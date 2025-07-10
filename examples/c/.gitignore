@@ -8,7 +8,7 @@
 # Standard build directories
 build/
 build-windows/
-windows-release/
+windows-release*/
 Release/
 Debug/
 out/
