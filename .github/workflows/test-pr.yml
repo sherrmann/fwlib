@@ -114,15 +114,9 @@ jobs:
         
         # Test error -16 (socket error) 
         Write-Host "`nTesting network error (should show enhanced message):" -ForegroundColor Yellow
-        # Connection failure is expected - capture output but don't fail workflow
-        try {
-          $result = & "./fanuc_example.exe" "--ip=192.168.99.99" "--port=8193" 2>&1
-          Write-Host $result
-        } catch {
-          Write-Host "Connection test completed (expected failure)" -ForegroundColor Gray
-        }
+        # Connection failure is expected - don't let it fail the workflow
+        $process = Start-Process -FilePath "./fanuc_example.exe" -ArgumentList "--ip=192.168.99.99","--port=8193" -Wait -PassThru -NoNewWindow
+        Write-Host "Exit code: $($process.ExitCode) (expected: non-zero for connection failure)" -ForegroundColor Gray
         Write-Host "Test completed - connection failure is expected behavior" -ForegroundColor Gray
-        
-        Write-Host "`n✅ Windows executable testing completed!" -ForegroundColor Green
         
         Write-Host "`n✅ Windows executable testing completed!" -ForegroundColor Green
