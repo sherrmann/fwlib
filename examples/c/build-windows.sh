@@ -92,6 +92,9 @@ print_success "libconfig built successfully"
 # Step 3: Build main project
 cd "$PROJECT_ROOT"
 print_step "Building main FANUC example..."
+print_step "Current directory: $(pwd)"
+print_step "Looking for CMakeLists.txt..."
+ls -la CMakeLists.txt || print_error "CMakeLists.txt not found!"
 
 if [ -d "$BUILD_DIR" ]; then
     rm -rf "$BUILD_DIR"
@@ -99,9 +102,11 @@ if [ -d "$BUILD_DIR" ]; then
 fi
 
 mkdir "$BUILD_DIR" && cd "$BUILD_DIR"
+print_step "Build directory: $(pwd)"
 cmake -DCMAKE_TOOLCHAIN_FILE="../${TOOLCHAIN_FILE}" -DCMAKE_BUILD_TYPE=Release ..
 
 # Build only the main target (skip tests that would fail on Linux)
+print_step "Running make fanuc_example..."
 make fanuc_example
 print_success "FANUC example built successfully"
 

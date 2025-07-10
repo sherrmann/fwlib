@@ -45,13 +45,16 @@ jobs:
         size=$(stat -c%s build-windows/bin/fanuc_example.exe)
         echo "📦 Executable size: $((size/1024))KB"
         
-    - name: Upload Windows executable
+        # Verify release package was created
+        echo "📦 Release package contents:"
+        ls -la windows-release/
+        
+    - name: Upload Windows release package
       uses: actions/upload-artifact@v4
       with:
-        name: fanuc-windows-executable
+        name: fanuc-windows-release-package
         path: |
-          examples/c/build-windows/bin/fanuc_example.exe
-          examples/c/build-windows/bin/*.dll
+          examples/c/windows-release/
         retention-days: 30
 
   test-windows:
@@ -62,17 +65,21 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Download Windows executable
+    - name: Download Windows release package
       uses: actions/download-artifact@v4
       with:
-        name: fanuc-windows-executable
-        path: windows-build/
+        name: fanuc-windows-release-package
+        path: windows-release/
         
     - name: Test executable on Windows
       shell: cmd
       run: |
-        cd windows-build
+        cd windows-release
         echo Testing FANUC example executable...
+        
+        echo.
+        echo ===== Package Contents =====
+        dir
         
         echo.
         echo ===== Testing Help/Usage =====
@@ -99,15 +106,17 @@ jobs:
     - name: Test error message improvements
       shell: powershell
       run: |
-        cd windows-build
+        cd windows-release
         Write-Host "Testing enhanced error messages..." -ForegroundColor Green
+        
+        Write-Host "`nPackage contents:" -ForegroundColor Yellow
+        Get-ChildItem
         
         # Test error -16 (socket error) 
         Write-Host "`nTesting network error (should show enhanced message):" -ForegroundColor Yellow
-        try {
-          ./fanuc_example.exe --ip=192.168.99.99 --port=8193
-        } catch {
-          Write-Host "Expected connection failure" -ForegroundColor Gray
-        }
+        # Connection failure is expected - don't fail the workflow
+        ./fanuc_example.exe --ip=192.168.99.99 --port=8193; if ($LASTEXITCODE -ne 0) { Write-Host "Expected connection failure (exit code: $LASTEXITCODE)" -ForegroundColor Gray }
+        
+        Write-Host "`n✅ Windows executable testing completed!" -ForegroundColor Green
         
         Write-Host "`n✅ Windows executable testing completed!" -ForegroundColor Green

@@ -30,11 +30,13 @@ This repository has a **single, comprehensive CI/CD workflow** for building, tes
 
 ## 📦 Build Artifact Contents
 
-Each successful build creates:
+Each successful build creates a **complete release package**:
 - `fanuc_example.exe` - Windows executable with enhanced error messages
 - `liblibconfig.dll` - Configuration library dependency
-- **All FANUC FOCAS DLLs** - Complete library set for compatibility
+- **`Fwlib32.dll`** - Main FANUC FOCAS library
+- **All FANUC FOCAS DLLs** - Complete library set for maximum compatibility
 - `config.cfg` - Sample configuration file (if available)
+- `README.md` - Usage instructions (if available)
 
 ## 🪟 Windows Testing
 
