@@ -127,23 +127,30 @@ cp "$BUILD_DIR/bin/liblibconfig.dll" "$RELEASE_DIR/"
 
 # Copy ALL FANUC DLLs from repository root
 print_step "Copying FANUC FOCAS DLLs..."
+print_step "Looking for DLLs in: $(pwd)/../../"
+ls -la ../../*.dll || print_warning "No DLLs found with ls command"
+
 FANUC_DLLS_COPIED=0
 
 for dll in ../../*.dll; do
     if [ -f "$dll" ]; then
         dll_name=$(basename "$dll")
-        cp "$dll" "$RELEASE_DIR/"
+        print_step "Copying $dll_name..."
+        cp "$dll" "$RELEASE_DIR/" || print_error "Failed to copy $dll_name"
         print_success "Copied $dll_name"
-        ((FANUC_DLLS_COPIED++))
+        FANUC_DLLS_COPIED=$((FANUC_DLLS_COPIED + 1))
+    else
+        print_warning "DLL not found or not a file: $dll"
     fi
 done
 
 if [ $FANUC_DLLS_COPIED -eq 0 ]; then
     print_error "No FANUC DLLs found in repository root!"
-    find ../../ -name "*.dll" -type f
+    print_step "Searching for DLLs recursively..."
+    find ../../ -name "*.dll" -type f || print_error "find command failed"
     exit 1
 else
-    print_success "Copied $FANUC_DLLS_COPIED FANUC DLLs"
+    print_success "Successfully copied $FANUC_DLLS_COPIED FANUC DLLs"
 fi
 
 # Copy configuration files if they exist
