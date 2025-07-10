@@ -29,6 +29,17 @@ jobs:
     - name: Build Windows executable
       run: |
         cd examples/c
+        
+        # Set build environment variables
+        export BUILD_TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        export BUILD_VERSION="ci-build-$(date +%Y%m%d)"
+        export GITHUB_SHA="${{ github.sha }}"
+        
+        echo "🔧 Build Environment:"
+        echo "  Timestamp: $BUILD_TIMESTAMP"
+        echo "  Version: $BUILD_VERSION"
+        echo "  Commit: ${GITHUB_SHA:0:7}"
+        
         ./build-windows.sh
         
     - name: Verify build artifacts
@@ -89,6 +100,15 @@ jobs:
         findstr /C:"FANUC FOCAS Library Example" help_output.txt && echo ✅ Found title
         findstr /C:"Usage:" help_output.txt && echo ✅ Found usage line
         findstr /C:"--ip=" help_output.txt && echo ✅ Found IP parameter
+        
+        echo.
+        echo ===== Testing Version Information =====
+        fanuc_example.exe --version > version_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL%
+        echo Version output should contain build information:
+        findstr /C:"FANUC FOCAS Library Example" version_output.txt && echo ✅ Found title
+        findstr /C:"Built:" version_output.txt && echo ✅ Found build timestamp
+        findstr /C:"Commit:" version_output.txt && echo ✅ Found commit info
         
         echo.
         echo ===== Testing Help with no arguments =====
@@ -209,42 +229,30 @@ jobs:
         
     - name: Generate release notes
       run: |
+        # Get commit info
+        COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')
+        COMMIT_DATE=$(git log -1 --pretty=format:'%ci')
+        
+        # Get executable size
+        EXEC_SIZE=$(stat -c%s release-package/fanuc_example.exe)
+        EXEC_SIZE_KB=$((EXEC_SIZE/1024))
+        
         cat > release_notes.md << EOF
-        # FANUC FOCAS Windows Build - ${{ env.TIMESTAMP }}
+        # 🚀 FANUC FOCAS Windows Build - ${{ env.TIMESTAMP }}
         
-        ## 📦 Complete Windows Package
+        ## 📦 Release Package
+        - **Executable Size**: ${EXEC_SIZE_KB}KB
+        - **Total Files**: ${TOTAL_FILES}
+        - **FANUC DLLs**: ${DLL_COUNT}
+        - **Release ZIP**: \`${{ env.ZIP_NAME }}\`
         
-        This release contains a **complete, ready-to-use Windows package** for the FANUC FOCAS library example.
-        
-        ### 🎯 What's Included
-        - **fanuc_example.exe** (247KB) - Windows executable with enhanced error messages
-        - **Complete FANUC FOCAS library set** (12+ MB):
-          - Fwlib32.dll, Fwlib0i.dll, Fwlib0iB.dll, Fwlib150.dll, Fwlib15i.dll
-          - Fwlib160.dll, Fwlib16W.dll, fwlib30i.dll, Fwlibpm.dll, Fwlibpmi.dll
-          - fwlib0DN.dll, fwlib0iD.dll, fwlibe1.dll, fwlibNCG.dll
-        - **liblibconfig.dll** - Configuration library
-        - **README.md** - Usage instructions
-        
-        ### 🚀 Quick Start
-        1. Download and extract the ZIP file
-        2. Run: \`fanuc_example.exe --ip=YOUR_FANUC_IP --port=8193\`
-        3. Or use config file: \`fanuc_example.exe --config=config.cfg\`
-        
-        ### ✨ Enhanced Features
-        - **Enhanced error messages** for easier troubleshooting
-        - **Complete DLL compatibility** for all FANUC series
-        - **Cross-compiled** from Linux using MinGW-w64
-        - **Fully tested** on Windows Server 2022
-        
-        ### 🔧 Build Info
-        - **Commit**: ${{ github.sha }}
+        ## 🔧 Build Information
+        - **Commit**: [\`${{ env.COMMIT_SHORT }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+        - **Message**: ${COMMIT_MESSAGE}
+        - **Date**: ${COMMIT_DATE}
         - **Built**: ${{ env.TIMESTAMP }} UTC
         - **Workflow**: [View build logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
         
-        ---
-        
-        **Note**: This is an automated release created from successful CI/CD pipeline execution.
-        EOF
         
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2

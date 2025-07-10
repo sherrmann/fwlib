@@ -1,5 +1,33 @@
 add_executable(fanuc_example main.c machine_info.c util.c config.c)
 
+# Add build information as compile definitions
+if(DEFINED ENV{GITHUB_SHA})
+  set(BUILD_COMMIT $ENV{GITHUB_SHA})
+else()
+  execute_process(COMMAND git rev-parse HEAD OUTPUT_VARIABLE BUILD_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  if(BUILD_COMMIT STREQUAL "")
+    set(BUILD_COMMIT "unknown")
+  endif()
+endif()
+
+if(DEFINED ENV{BUILD_TIMESTAMP})
+  set(BUILD_TIMESTAMP $ENV{BUILD_TIMESTAMP})
+else()
+  string(TIMESTAMP BUILD_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
+endif()
+
+if(DEFINED ENV{BUILD_VERSION})
+  set(BUILD_VERSION $ENV{BUILD_VERSION})
+else()
+  set(BUILD_VERSION "dev-build")
+endif()
+
+target_compile_definitions(fanuc_example PRIVATE
+  BUILD_COMMIT="${BUILD_COMMIT}"
+  BUILD_TIMESTAMP="${BUILD_TIMESTAMP}"
+  BUILD_VERSION="${BUILD_VERSION}"
+)
+
 set(DEPS "fwlib32" "config")
 
 if (WIN32)

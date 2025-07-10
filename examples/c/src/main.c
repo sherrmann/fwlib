@@ -14,7 +14,8 @@ void show_usage(const char *program_name) {
   printf("  --ip=<ip_address>        CNC machine IP address (required)\n");
   printf("  --port=<port_number>     CNC machine port (default: 8193)\n");
   printf("  --config=<config_file>   Read settings from config file\n");
-  printf("  --help                   Show this help message\n\n");
+  printf("  --help                   Show this help message\n");
+  printf("  --version                Show version and build information\n\n");
   printf("Environment Variables:\n");
   printf("  DEVICE_IP                CNC machine IP address\n");
   printf("  DEVICE_PORT              CNC machine port\n\n");
@@ -22,14 +23,34 @@ void show_usage(const char *program_name) {
   printf("  %s --ip=192.168.1.100 --port=8193\n", program_name);
 }
 
+void show_version() {
+#ifdef BUILD_TIMESTAMP
+  printf("FANUC FOCAS Library Example\n");
+  printf("Version: %s\n", BUILD_VERSION);
+  printf("Built: %s\n", BUILD_TIMESTAMP);
+  printf("Commit: %s\n", BUILD_COMMIT);
+  printf("Compiler: MinGW-w64 GCC (cross-compiled)\n");
+  printf("FOCAS: Official FANUC library\n");
+#else
+  printf("FANUC FOCAS Library Example\n");
+  printf("Version: Development build\n");
+  printf("Compiler: MinGW-w64 GCC (cross-compiled)\n");
+  printf("FOCAS: Official FANUC library\n");
+#endif
+}
+
 int main(int argc, char *argv[]) {
   MachineInfo machine_info;
   Config conf;
 
-  // Check for help flag first
+  // Check for help and version flags first
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
       show_usage(argv[0]);
+      return EXIT_SUCCESS;
+    }
+    if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
+      show_version();
       return EXIT_SUCCESS;
     }
   }
