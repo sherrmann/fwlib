@@ -90,6 +90,7 @@ make -j$(nproc)
 print_success "libconfig built successfully"
 
 # Step 3: Build main project
+cd "$PROJECT_ROOT"
 print_step "Building main FANUC example..."
 
 if [ -d "$BUILD_DIR" ]; then
