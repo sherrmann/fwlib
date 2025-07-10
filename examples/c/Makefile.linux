@@ -1,0 +1,28 @@
+# Simple Linux test makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99 -DTESTING
+SRC_DIR = src
+BUILD_DIR = build-linux
+TARGET = fanuc_example_test
+
+SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/config.c $(SRC_DIR)/util.c
+OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+
+.PHONY: all clean test
+
+all: $(BUILD_DIR)/$(TARGET)
+
+$(BUILD_DIR)/$(TARGET): $(OBJECTS)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(OBJECTS) -o $@
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -I$(SRC_DIR) -c $< -o $@
+
+test: $(BUILD_DIR)/$(TARGET)
+	@echo "Testing error messages..."
+	./$(BUILD_DIR)/$(TARGET) --ip=192.168.99.99 --port=8193 || true
+
+clean:
+	rm -rf $(BUILD_DIR)
