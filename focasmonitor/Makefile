@@ -61,6 +61,7 @@ package: build-windows
 	# Copy FANUC DLLs
 	@cp ../Fwlib32.dll $(RELEASE_DIR)/
 	@cp ../fwlib*.dll $(RELEASE_DIR)/ 2>/dev/null || true
+	@cp ../Fwlib*.dll $(RELEASE_DIR)/ 2>/dev/null || true
 	@printf "✅ Copied FANUC libraries\n"
 	
 	# Copy documentation and samples

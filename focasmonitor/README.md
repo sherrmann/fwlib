@@ -3,6 +3,8 @@
 ## Overview
 `focasmonitor` is a production-ready Windows application for monitoring multiple FANUC CNC machines using the FOCAS library. It consolidates and improves upon the multi-machine capabilities developed in the examples folder.
 
+**Comprehensive FANUC Support**: Includes all 14 FOCAS library DLLs supporting Series 0i, 15, 16, 30i, Power Mate, Data Server, NC Guide, and Ethernet connectivity across all FANUC machine generations.
+
 ## Features
 
 ### 🏭 **Multi-Machine Monitoring**

@@ -12,6 +12,29 @@
 2. Place it in a convenient location (e.g., `C:\FocasMonitor\`)
 3. Ensure all DLL files remain in the same directory as `focasmonitor.exe`
 
+### **Package Contents**
+The release package includes all necessary files:
+
+**Core Application:**
+- `focasmonitor.exe` - Main executable
+
+**FANUC FOCAS Libraries (14 DLLs):**
+- `Fwlib32.dll` - Main FOCAS library
+- `Fwlib0i.dll`, `Fwlib0iB.dll` - Series 0i support
+- `Fwlib150.dll`, `Fwlib15i.dll` - Series 15 support  
+- `Fwlib160.dll`, `Fwlib16W.dll` - Series 16 support
+- `Fwlibpm.dll`, `Fwlibpmi.dll` - Power Mate support
+- `fwlib0DN.dll`, `fwlib0iD.dll` - Data Server support
+- `fwlib30i.dll` - Series 30i support
+- `fwlibNCG.dll` - NC Guide support
+- `fwlibe1.dll` - Ethernet support
+
+**Configuration & Documentation:**
+- `machines.txt` - Sample machine configuration
+- `README.md` - Usage documentation
+
+⚠️ **Important**: All DLL files must remain in the same directory as the executable for proper operation.
+
 ### **Basic Setup**
 1. **Configure Machines**: Edit `machines.txt` with your machine details
    ```
