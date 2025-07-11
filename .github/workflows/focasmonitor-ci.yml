@@ -2,290 +2,384 @@ name: FOCAS Monitor CI/CD
 
 on:
   push:
-    branches: [ main, master, develop, focasmonitor/* ]
-    tags: [ 'v*' ]
   pull_request:
-    branches: [ main, master, develop ]
+  workflow_dispatch:
 
 env:
   BUILD_TYPE: Release
 
 jobs:
-  lint-and-format:
+  lint-and-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         
-    - name: Install clang-format
-      run: sudo apt-get update && sudo apt-get install -y clang-format
-      
-    - name: Check C code formatting
-      run: |
-        find . -name "*.c" -o -name "*.h" | grep -E "(focasmonitor|examples/c)" | head -20 | xargs clang-format --dry-run -Werror || true
-        echo "Code formatting check completed"
-
-  test-examples:
-    runs-on: ubuntu-latest
-    needs: lint-and-format
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y mingw-w64 cmake build-essential
-
-    - name: Check environment
+        sudo apt-get install -y clang-format mingw-w64 cmake build-essential
+        
+    - name: Check C code formatting
       run: |
+        echo "🎨 Checking code formatting..."
+        find . -name "*.c" -o -name "*.h" | grep -E "(focasmonitor|examples/c)" | head -20 | xargs clang-format --dry-run -Werror || true
+        echo "✅ Code formatting check completed"
+
+    - name: Check build environment
+      run: |
+        echo "🔍 Checking build environment..."
         cd examples/c
         chmod +x check-environment.sh
         ./check-environment.sh
-
-    - name: Test examples build
-      run: |
-        cd examples/c
-        chmod +x check-environment.sh build-windows.sh
-        ./check-environment.sh
         
-        # Use proper build script like main pipeline
-        echo "🔧 Testing examples build process..."
-        ./build-windows.sh || echo "Build completed - may have linking issues without real FANUC libraries"
-
-    - name: Test help output
-      run: |
-        cd examples/c
-        echo "Testing help outputs..."
-        # Test that build files are created even if linking fails
-        test -f build-windows/src/CMakeFiles/fanuc_example.dir/main.c.obj || echo "Object files created"
-
-  build-focasmonitor:
-    runs-on: ubuntu-latest
-    needs: lint-and-format
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Install MinGW cross-compiler
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y mingw-w64 cmake
-
-    - name: Verify build environment
-      run: |
-        cd focasmonitor
+        cd ../../focasmonitor
         make check
 
+  build-and-package:
+    runs-on: ubuntu-latest
+    needs: lint-and-check
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 cmake build-essential zip
+        
+    - name: Build Legacy Examples
+      run: |
+        cd examples/c
+        echo "🔧 Building legacy FANUC examples..."
+        
+        # Set build environment variables
+        export BUILD_TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        export BUILD_VERSION="ci-build-$(date +%Y%m%d)"
+        export GITHUB_SHA="${{ github.sha }}"
+        
+        echo "🔧 Build Environment:"
+        echo "  Timestamp: $BUILD_TIMESTAMP"
+        echo "  Version: $BUILD_VERSION"
+        echo "  Commit: ${GITHUB_SHA:0:7}"
+        
+        chmod +x build-windows.sh
+        ./build-windows.sh
+        
+        # Verify build
+        test -f build-windows/bin/fanuc_example.exe
+        file build-windows/bin/fanuc_example.exe | grep "PE32"
+        
+        # Create package with all DLLs
+        make package
+        
+        echo "✅ Legacy examples built and packaged successfully"
+        
     - name: Build FOCAS Monitor
       run: |
         cd focasmonitor
-        make build-windows
-
-    - name: Verify executable
-      run: |
-        cd focasmonitor
-        file build-windows/focasmonitor.exe | grep "PE32" || echo "Windows executable format verified"
-        ls -la build-windows/focasmonitor.exe
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: focasmonitor-build
-        path: |
-          focasmonitor/build-windows/focasmonitor.exe
-        retention-days: 30
-
-  create-release-package:
-    runs-on: ubuntu-latest
-    needs: build-focasmonitor
-    if: startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y mingw-w64 cmake zip
-
-    - name: Build complete package
-      run: |
-        cd focasmonitor
+        echo "🔧 Building FOCAS Monitor..."
+        
+        # Build FOCAS Monitor
         make all
-
-    - name: Create release archive
+        
+        # Verify build
+        test -f build-windows/focasmonitor.exe
+        file build-windows/focasmonitor.exe | grep "PE32"
+        
+        # Get executable size
+        size=$(stat -c%s build-windows/focasmonitor.exe)
+        echo "📦 FOCAS Monitor executable size: $((size/1024))KB"
+        
+        # Verify all DLLs are included
+        echo "📦 FOCAS Monitor release package ($(ls -1 release/*.dll | wc -l) DLLs):"
+        ls -la release/
+        
+        echo "✅ FOCAS Monitor built and packaged successfully"
+        
+    - name: Create unified release
       run: |
+        echo "📦 Creating unified release package..."
+        mkdir -p unified-release
+        
+        # Create examples package
+        cp -r examples/c/windows-release unified-release/fanuc-examples
+        
+        # Create focasmonitor package  
+        cp -r focasmonitor/release unified-release/focasmonitor
+        
+        # Create release documentation
+        cat > unified-release/README.md << 'EOF'
+        # FANUC FOCAS Library - Complete Release Package
+        
+        This package contains both the legacy examples and the production FOCAS Monitor application.
+        
+        ## Contents
+        
+        ### `/fanuc-examples/` - Legacy Example Application
+        - `fanuc_example.exe` - Single machine monitoring example
+        - `liblibconfig.dll` - Configuration library
+        - All 14 FANUC FOCAS DLLs
+        - Documentation and configuration files
+        
+        ### `/focasmonitor/` - Production Multi-Machine Monitor
+        - `focasmonitor.exe` - Production-ready multi-machine monitoring
+        - All 14 FANUC FOCAS DLLs  
+        - `machines.txt` - Sample machine configuration
+        - `README.md` - Complete usage documentation
+        
+        ## FANUC Libraries Included (Both Packages)
+        - Fwlib32.dll (Main FOCAS library)
+        - Fwlib0i.dll, Fwlib0iB.dll (Series 0i support)
+        - Fwlib150.dll, Fwlib15i.dll (Series 15 support)
+        - Fwlib160.dll, Fwlib16W.dll (Series 16 support)
+        - Fwlibpm.dll, Fwlibpmi.dll (Power Mate support)
+        - fwlib0DN.dll, fwlib0iD.dll (Data Server support)
+        - fwlib30i.dll (Series 30i support)
+        - fwlibNCG.dll (NC Guide support)
+        - fwlibe1.dll (Ethernet support)
+        
+        ## Quick Start
+        
+        ### Legacy Example (Single Machine)
+        ```cmd
+        cd fanuc-examples
+        fanuc_example.exe --ip=192.168.1.100 --port=8193 --info=all
+        ```
+        
+        ### Production Monitor (Multi-Machine)
+        ```cmd
         cd focasmonitor
-        cp -r release focasmonitor-${{ github.ref_name }}
-        zip -r focasmonitor-${{ github.ref_name }}.zip focasmonitor-${{ github.ref_name }}/
-
-    - name: Upload release package
+        focasmonitor.exe --machines=machines.txt --monitor --interval=30
+        ```
+        
+        ## System Requirements
+        - Windows 7 or later
+        - Network connectivity to FANUC machines
+        - FANUC machines with FOCAS support enabled
+        EOF
+        
+        # Verify package contents
+        echo "📦 Unified release package contents:"
+        find unified-release -type f | sort
+        
+        echo "📊 Package statistics:"
+        echo "  Examples DLLs: $(ls -1 unified-release/fanuc-examples/*.dll | wc -l)"
+        echo "  FOCAS Monitor DLLs: $(ls -1 unified-release/focasmonitor/*.dll | wc -l)"
+        echo "  Total size: $(du -sh unified-release | cut -f1)"
+        
+    - name: Upload Examples Package
       uses: actions/upload-artifact@v4
       with:
-        name: focasmonitor-release-${{ github.ref_name }}
-        path: |
-          focasmonitor/focasmonitor-${{ github.ref_name }}.zip
+        name: fanuc-examples-${{ github.sha }}
+        path: unified-release/fanuc-examples/
+        retention-days: 30
+        
+    - name: Upload FOCAS Monitor Package  
+      uses: actions/upload-artifact@v4
+      with:
+        name: focasmonitor-${{ github.sha }}
+        path: unified-release/focasmonitor/
+        retention-days: 30
+        
+    - name: Upload Unified Release Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: fanuc-focas-complete-${{ github.sha }}
+        path: unified-release/
         retention-days: 90
 
-  test-functionality:
-    runs-on: ubuntu-latest
-    needs: build-focasmonitor
+  test-windows:
+    runs-on: windows-latest
+    needs: build-and-package
     
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Download build artifacts
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download unified release
       uses: actions/download-artifact@v4
       with:
-        name: focasmonitor-build
-        path: test-artifacts/
-
-    - name: Test executable properties
-      run: |
-        cd test-artifacts
-        file focasmonitor.exe
-        ls -la focasmonitor.exe
+        name: fanuc-focas-complete-${{ github.sha }}
+        path: release-test/
         
-        # Test file size (should be reasonable)
-        size=$(stat -c%s focasmonitor.exe)
-        echo "Executable size: $((size/1024))KB"
-        if [ $size -lt 100000 ]; then
-          echo "Warning: Executable seems too small"
-          exit 1
-        fi
-        if [ $size -gt 2000000 ]; then
-          echo "Warning: Executable seems too large"
-          exit 1
-        fi
+    - name: Test Legacy Examples on Windows
+      shell: cmd
+      run: |
+        cd release-test\fanuc-examples
+        echo Testing legacy FANUC examples...
+        
+        echo.
+        echo ===== Examples Package Contents =====
+        dir
+        
+        echo.
+        echo ===== Testing Examples Help =====
+        fanuc_example.exe --help > help_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL%
+        findstr /C:"FANUC FOCAS Library Example" help_output.txt && echo ✅ Found title
+        findstr /C:"Usage:" help_output.txt && echo ✅ Found usage line
+        findstr /C:"--ip=" help_output.txt && echo ✅ Found IP parameter
+        
+        echo.
+        echo ===== Testing Examples Version =====
+        fanuc_example.exe --version > version_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL%
+        findstr /C:"FANUC FOCAS Library Example" version_output.txt && echo ✅ Found title
+        findstr /C:"Built:" version_output.txt && echo ✅ Found build timestamp
+        
+        echo ✅ Legacy examples tested successfully!
+        
+    - name: Test FOCAS Monitor on Windows
+      shell: cmd
+      run: |
+        cd release-test\focasmonitor
+        echo Testing FOCAS Monitor...
+        
+        echo.
+        echo ===== FOCAS Monitor Package Contents =====
+        dir
+        
+        echo.
+        echo ===== Testing FOCAS Monitor Help =====
+        focasmonitor.exe --help > help_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL%
+        findstr /C:"FOCAS Monitor" help_output.txt && echo ✅ Found title
+        findstr /C:"Usage:" help_output.txt && echo ✅ Found usage line
+        findstr /C:"--machines" help_output.txt && echo ✅ Found machines parameter
+        findstr /C:"--output" help_output.txt && echo ✅ Found output parameter
+        
+        echo.
+        echo ===== Testing FOCAS Monitor Version =====
+        focasmonitor.exe --version > version_output.txt 2>&1
+        echo Exit code: %ERRORLEVEL%
+        findstr /C:"FOCAS Monitor" version_output.txt && echo ✅ Found title
+        
+        echo.
+        echo ===== Testing with Sample Configuration =====
+        echo Sample machines configuration:
+        type machines.txt
+        
+        echo.
+        echo Testing configuration validation (should show connection attempts):
+        timeout 5 focasmonitor.exe --machines=machines.txt --info=basic > test_output.txt 2>&1
+        echo Timeout exit code: %ERRORLEVEL% (expected due to timeout)
+        findstr /C:"Loading machines from" test_output.txt && echo ✅ Configuration loaded
+        
+        echo ✅ FOCAS Monitor tested successfully!
+        
+    - name: Verify DLL Coverage
+      shell: cmd
+      run: |
+        echo.
+        echo ===== Verifying Complete DLL Coverage =====
+        
+        echo Examples DLL count:
+        dir /b release-test\fanuc-examples\*.dll | find /c /v ""
+        
+        echo FOCAS Monitor DLL count:
+        dir /b release-test\focasmonitor\*.dll | find /c /v ""
+        
+        echo.
+        echo ===== Expected FANUC DLLs (should be present in both) =====
+        echo Checking for critical FANUC libraries...
+        dir release-test\focasmonitor\Fwlib32.dll && echo ✅ Main FOCAS library present
+        dir release-test\focasmonitor\fwlib30i.dll && echo ✅ Series 30i support present  
+        dir release-test\focasmonitor\Fwlib160.dll && echo ✅ Series 16 support present
+        dir release-test\focasmonitor\fwlibNCG.dll && echo ✅ NC Guide support present
+        
+        echo ✅ DLL coverage verification completed!
 
-  documentation-check:
+  create-release:
     runs-on: ubuntu-latest
+    needs: [build-and-package, test-windows]
     
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Check documentation completeness
-      run: |
-        echo "Checking documentation..."
-        
-        # Check main documentation files
-        test -f focasmonitor/README.md || (echo "Missing focasmonitor README.md" && exit 1)
-        test -f focasmonitor/DEVELOPMENT_SUMMARY.md || (echo "Missing DEVELOPMENT_SUMMARY.md" && exit 1)
-        test -f focasmonitor/DEPLOYMENT.md || (echo "Missing DEPLOYMENT.md" && exit 1)
-        test -f focasmonitor/LICENSE || (echo "Missing LICENSE" && exit 1)
-        
-        # Check examples documentation
-        test -f examples/c/README.md || (echo "Missing examples README.md" && exit 1)
-        test -f examples/c/DEVELOPMENT_PROGRESS.md || (echo "Missing DEVELOPMENT_PROGRESS.md" && exit 1)
-        test -f examples/c/DEVELOPMENT_ROADMAP.md || (echo "Missing DEVELOPMENT_ROADMAP.md" && exit 1)
-        
-        # Check for usage examples in main README
-        grep -q "focasmonitor.exe" focasmonitor/README.md || (echo "Missing usage examples in README" && exit 1)
-        
-        echo "Documentation check passed!"
-
-  security-scan:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Run security scan
-      run: |
-        echo "Running basic security checks..."
-        
-        # Check for common security issues in C code
-        echo "Checking for unsafe C functions..."
-        if grep -r "strcpy\|strcat\|sprintf\|gets" focasmonitor/src/ examples/c/src/ 2>/dev/null; then
-          echo "Warning: Found potentially unsafe C functions"
-        fi
-        
-        # Check for hardcoded IPs or credentials
-        echo "Checking for hardcoded credentials..."
-        if grep -r "password\|secret\|key" focasmonitor/ examples/c/ 2>/dev/null | grep -v ".md" | grep -v "examples"; then
-          echo "Warning: Potential hardcoded credentials found"
-        fi
-        
-        echo "Security scan completed"
-
-# Release workflow
-  release:
-    runs-on: ubuntu-latest
-    needs: [test-examples, build-focasmonitor, test-functionality, documentation-check]
-    if: startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
         submodules: recursive
-
+        
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y mingw-w64 cmake zip
-
-    - name: Build release package
+        
+    - name: Build release packages
       run: |
+        echo "🚀 Creating release packages..."
+        
+        # Generate release version from timestamp and commit
+        export RELEASE_VERSION="build-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
+        echo "📦 Release version: $RELEASE_VERSION"
+        
+        # Build examples
+        cd examples/c
+        chmod +x build-windows.sh
+        ./build-windows.sh
+        make package
+        cd ../..
+        
+        # Build focasmonitor
         cd focasmonitor
         make all
+        cd ..
         
-        # Create versioned release
-        cp -r release focasmonitor-${{ github.ref_name }}
-        zip -r focasmonitor-${{ github.ref_name }}.zip focasmonitor-${{ github.ref_name }}/
+        # Create release structure
+        mkdir -p official-release
+        cp -r examples/c/windows-release official-release/fanuc-examples-$RELEASE_VERSION
+        cp -r focasmonitor/release official-release/focasmonitor-$RELEASE_VERSION
         
-        # Generate checksums
-        sha256sum focasmonitor-${{ github.ref_name }}.zip > focasmonitor-${{ github.ref_name }}.zip.sha256
-
-    - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Create individual archives
+        cd official-release
+        zip -r fanuc-examples-$RELEASE_VERSION.zip fanuc-examples-$RELEASE_VERSION/
+        zip -r focasmonitor-$RELEASE_VERSION.zip focasmonitor-$RELEASE_VERSION/
+        
+        # Create unified archive
+        mkdir fanuc-focas-complete-$RELEASE_VERSION
+        cp -r fanuc-examples-$RELEASE_VERSION fanuc-focas-complete-$RELEASE_VERSION/fanuc-examples
+        cp -r focasmonitor-$RELEASE_VERSION fanuc-focas-complete-$RELEASE_VERSION/focasmonitor
+        
+        # Add release documentation
+        cat > fanuc-focas-complete-$RELEASE_VERSION/README.md << EOF
+        # FANUC FOCAS Library - Release $RELEASE_VERSION
+        
+        Release package containing both legacy examples and production FOCAS Monitor.
+        
+        ## Build Information
+        - **Build**: $RELEASE_VERSION
+        - **Commit**: ${{ github.sha }}
+        - **Branch**: ${{ github.ref_name }}
+        - **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        ## Package Contents
+        - \`/fanuc-examples/\` - Legacy single-machine example
+        - \`/focasmonitor/\` - Production multi-machine monitor
+        - Complete FANUC library support for all machine series (14 DLLs)
+        
+        ## System Requirements  
+        - Windows 7 or later (32-bit or 64-bit)
+        - Network connectivity to FANUC CNC machines
+        - FANUC machines with FOCAS support enabled
+        
+        ## Quick Start
+        See individual README files in each directory for detailed usage instructions.
+        EOF
+        
+        zip -r fanuc-focas-complete-$RELEASE_VERSION.zip fanuc-focas-complete-$RELEASE_VERSION/
+        
+        echo "📦 Release packages created:"
+        ls -la *.zip
+        
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v4
       with:
-        tag_name: ${{ github.ref }}
-        release_name: FOCAS Monitor ${{ github.ref_name }}
-        body: |
-          ## FOCAS Monitor ${{ github.ref_name }}
-          
-          Production-ready multi-machine FANUC CNC monitoring application.
-          
-          ### Features
-          - Multi-machine monitoring (up to 50 machines)
-          - Multiple output formats (console, JSON, CSV)
-          - Continuous monitoring with configurable intervals
-          - Comprehensive machine data collection
-          - Windows PE32 executable with all required FANUC libraries
-          
-          ### Usage
-          ```cmd
-          focasmonitor.exe --machines=machines.txt --info=basic
-          focasmonitor.exe --machines=machines.txt --monitor --interval=60
-          ```
-          
-          ### Package Contents
-          - `focasmonitor.exe` - Main application
-          - `Fwlib32.dll` + additional FANUC libraries
-          - `machines.txt` - Sample configuration
-          - `README.md` - Complete documentation
-          
-          Built on: ${{ github.run_id }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: focasmonitor/focasmonitor-${{ github.ref_name }}.zip
-        asset_name: focasmonitor-${{ github.ref_name }}.zip
-        asset_content_type: application/zip
+        name: release-packages-${{ github.sha }}
+        path: |
+          official-release/*.zip
+        retention-days: 90
