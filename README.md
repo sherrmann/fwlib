@@ -1,6 +1,5 @@
 # FANUC FOCAS Library
-[![Docker Hub](https://img.shields.io/docker/v/strangesast/fwlib?sort=date)](https://hub.docker.com/r/strangesast/fwlib)  
-[![CI/CD Pipeline](https://github.com/user/fwlib/actions/workflows/focasmonitor-ci.yml/badge.svg)](https://github.com/user/fwlib/actions/workflows/focasmonitor-ci.yml)
+[![CI/CD Pipeline](https://github.com/strangesast/fwlib/actions/workflows/focasmonitor-ci.yml/badge.svg)](https://github.com/strangesast/fwlib/actions/workflows/focasmonitor-ci.yml)
 
 Comprehensive FANUC FOCAS library with examples and production-ready multi-machine monitoring tools.
 
@@ -31,7 +30,7 @@ Each CI/CD run produces three downloadable artifacts:
 - **`fanuc-examples-{sha}`** - Legacy single-machine example application  
 - **`fanuc-focas-complete-{sha}`** - Complete package with both applications
 
-Additionally, the workflow creates timestamped release packages:
+Additionally, the workflow creates timestamped GitHub releases on successful builds:
 
 - **`focasmonitor-build-YYYYMMDD-HHMMSS-{commit}.zip`** - Versioned production package
 - **`fanuc-examples-build-YYYYMMDD-HHMMSS-{commit}.zip`** - Versioned examples package

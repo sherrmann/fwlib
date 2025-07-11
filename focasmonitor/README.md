@@ -8,7 +8,7 @@
 ## Features
 
 ### 🏭 **Multi-Machine Monitoring**
-- Monitor unlimited number of FANUC CNC machines simultaneously
+- Monitor up to 25 FANUC CNC machines simultaneously
 - Connection pool management with automatic retry and reconnection
 - Batch configuration via machine list files
 - Real-time status monitoring across all machines
