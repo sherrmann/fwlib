@@ -45,6 +45,7 @@ void show_usage(const char *program_name) {
          "seconds)\n");
   printf("  --output=<format>           Output format: console, json, csv\n");
   printf("  --verbose                   Enable verbose logging\n");
+  printf("  --diagnose                  Run network diagnostics on connection failures\n");
   printf("  --status                    Show connection pool status\n");
   printf("  --timeout=<seconds>         Connection timeout (default: 10 "
          "seconds)\n");
@@ -83,6 +84,7 @@ int read_config(int argc, char *argv[], Config *conf) {
   conf->monitor_interval = DEFAULT_MONITOR_INTERVAL;
   conf->timeout = CONNECTION_TIMEOUT;
   conf->verbose = false;
+  conf->diagnose = false;
   conf->monitor_mode = false;
   conf->show_status = false;
 
@@ -107,6 +109,8 @@ int read_config(int argc, char *argv[], Config *conf) {
       conf->monitor_mode = true;
     } else if (strcmp(argv[i], "--verbose") == 0) {
       conf->verbose = true;
+    } else if (strcmp(argv[i], "--diagnose") == 0) {
+      conf->diagnose = true;
     } else if (strcmp(argv[i], "--status") == 0) {
       conf->show_status = true;
     } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
@@ -319,7 +323,7 @@ int main(int argc, char *argv[]) {
 
   // Connect to all machines
   printf("Connecting to %d machines...\n", g_pool.machine_count);
-  result = connection_pool_connect_all(&g_pool);
+  result = connection_pool_connect_all(&g_pool, conf.diagnose || conf.verbose);
   
   // Count successful and failed connections
   int connected = 0, failed = 0;
@@ -332,14 +336,14 @@ int main(int argc, char *argv[]) {
   }
   
   if (connected > 0 && failed == 0) {
-    printf("✓ All %d machines connected successfully\n", connected);
+    printf("[OK] All %d machines connected successfully\n", connected);
   } else if (connected > 0 && failed > 0) {
-    printf("⚠ Partial success: %d/%d machines connected (%d failed)\n", 
+    printf("WARNING: Partial success: %d/%d machines connected (%d failed)\n", 
            connected, g_pool.machine_count, failed);
     printf("  Monitoring will continue with available machines\n");
     printf("  Failed connections will be retried automatically\n");
   } else {
-    printf("✗ All connection attempts failed (%d machines unreachable)\n", failed);
+    printf("[FAIL] All connection attempts failed (%d machines unreachable)\n", failed);
     printf("  Check network connectivity and machine configurations\n");
     printf("  Monitoring will continue and retry connections automatically\n");
   }

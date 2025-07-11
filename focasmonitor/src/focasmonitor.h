@@ -21,6 +21,7 @@ typedef struct {
   char info_type[16];
   char output_format[16];
   bool verbose;
+  bool diagnose;
   bool monitor_mode;
   bool show_status;
   int monitor_interval;
@@ -142,7 +143,7 @@ int parse_machine_spec(const char *spec, char *name, char *ip, int *port);
 FocasResult connection_pool_init(ConnectionPool *pool);
 FocasResult connection_pool_add_machine(ConnectionPool *pool, const char *name,
                                         const char *ip, int port);
-FocasResult connection_pool_connect_all(ConnectionPool *pool);
+FocasResult connection_pool_connect_all(ConnectionPool *pool, bool diagnose);
 FocasResult connection_pool_disconnect_all(ConnectionPool *pool);
 FocasResult connection_pool_read_all_info(ConnectionPool *pool,
                                           MultiMachineInfo *multi_info);
