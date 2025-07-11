@@ -13,6 +13,104 @@
 // Include the official FANUC header
 #include "fwlib32.h"
 
+// Convert FOCAS error codes to human-readable messages
+const char* focas_error_to_string(short error_code) {
+  switch (error_code) {
+    case EW_OK:
+      return "No error";
+    case EW_FUNC:
+      return "Function not supported";
+    case EW_LENGTH:
+      return "Data length error";
+    case EW_NUMBER:
+      return "Data number error";
+    case EW_ATTRIB:
+      return "Data attribute error";
+    case EW_DATA:
+      return "Data error";
+    case EW_NOOPT:
+      return "Option not available";
+    case EW_PROT:
+      return "Write protection error";
+    case EW_OVRFLOW:
+      return "Memory overflow";
+    case EW_PARAM:
+      return "Parameter error";
+    case EW_BUFFER:
+      return "Buffer error";
+    case EW_PATH:
+      return "Path error";
+    case EW_MODE:
+      return "Mode error";
+    case EW_REJECT:
+      return "Execution rejected";
+    case EW_DTSRVR:
+      return "Data server error";
+    case EW_ALARM:
+      return "Alarm state";
+    case EW_STOP:
+      return "Not running";
+    case EW_PASSWD:
+      return "Password error";
+    case EW_PROTOCOL:
+      return "Protocol error";
+    case EW_SOCKET:
+      return "Socket communication error";
+    case EW_NODLL:
+      return "DLL not found";
+    case EW_BUS:
+      return "Bus error";
+    case EW_SYSTEM2:
+      return "System error";
+    case EW_HSSB:
+      return "HSSB communication error";
+    case EW_HANDLE:
+      return "Invalid handle";
+    case EW_VERSION:
+      return "Version mismatch";
+    case EW_UNEXP:
+      return "Unexpected error";
+    case EW_SYSTEM:
+      return "System error";
+    case EW_PARITY:
+      return "Parity error";
+    case EW_MMCSYS:
+      return "MMC system error";
+    case EW_RESET:
+      return "Reset required";
+    case EW_BUSY:
+      return "Busy";
+    default:
+      return "Unknown FOCAS error";
+  }
+}
+
+// Get detailed error information for connection failures
+const char* get_connection_error_details(short error_code) {
+  switch (error_code) {
+    case EW_SOCKET:
+      return "Network connection failed - check IP address, port, and network connectivity";
+    case EW_PROTOCOL:
+      return "FOCAS protocol error - machine may not support FOCAS or wrong port";
+    case EW_PASSWD:
+      return "Authentication failed - check machine password settings";
+    case EW_NODLL:
+      return "FOCAS library (DLL) not found or incompatible";
+    case EW_VERSION:
+      return "FOCAS version mismatch between library and machine";
+    case EW_HANDLE:
+      return "Invalid connection handle - connection may have been lost";
+    case EW_BUSY:
+      return "Machine is busy - too many connections or machine overloaded";
+    case EW_ALARM:
+      return "Machine is in alarm state - resolve alarms before connecting";
+    case EW_NOOPT:
+      return "FOCAS option not enabled on machine - check machine configuration";
+    default:
+      return focas_error_to_string(error_code);
+  }
+}
+
 FocasResult connection_pool_init(ConnectionPool *pool) {
   if (!pool)
     return FOCAS_CONNECTION_FAILED;
@@ -91,8 +189,11 @@ FocasResult connection_pool_connect_machine(ConnectionPool *pool,
   } else {
     machine->state = CONN_ERROR;
     machine->retry_count++;
+    
+    // Use detailed error mapping
+    const char* error_msg = get_connection_error_details(result);
     snprintf(machine->last_error, sizeof(machine->last_error),
-             "Connection failed: FOCAS error %d", result);
+             "Connection failed: %s (FOCAS error %d)", error_msg, result);
 
     return FOCAS_CONNECTION_FAILED;
   }
@@ -148,23 +249,18 @@ FocasResult connection_pool_disconnect_all(ConnectionPool *pool) {
   return FOCAS_OK;
 }
 
-FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
-  unsigned short libh;
-  FocasResult result = FOCAS_OK;
+FocasResult read_machine_info_from_handle(unsigned short handle, MachineInfo *info) {
+  if (handle == 0 || !info) {
+    return FOCAS_CONNECTION_FAILED;
+  }
 
   // Initialize info structure
   memset(info, 0, sizeof(MachineInfo));
   info->last_updated = time(NULL);
 
-  // Connect to machine
-  short connect_result = cnc_allclibhndl3(ip, port, CONNECTION_TIMEOUT, &libh);
-  if (connect_result != EW_OK) {
-    return FOCAS_CONNECTION_FAILED;
-  }
-
   // Read machine ID
   unsigned long cncid[4];
-  if (cnc_rdcncid(libh, cncid) == EW_OK) {
+  if (cnc_rdcncid(handle, cncid) == EW_OK) {
     snprintf(info->machine_id, sizeof(info->machine_id),
              "%08lx-%08lx-%08lx-%08lx", cncid[0], cncid[1], cncid[2], cncid[3]);
   } else {
@@ -173,7 +269,7 @@ FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
 
   // Read current program
   ODBPRO prgnum;
-  if (cnc_rdprgnum(libh, &prgnum) == EW_OK) {
+  if (cnc_rdprgnum(handle, &prgnum) == EW_OK) {
     snprintf(info->program_name, sizeof(info->program_name), "O%04d",
              prgnum.data);
     info->program_number = (int)prgnum.data;
@@ -184,7 +280,7 @@ FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
 
   // Read machine status
   ODBST status;
-  if (cnc_statinfo(libh, &status) == EW_OK) {
+  if (cnc_statinfo(handle, &status) == EW_OK) {
     switch (status.run) {
     case 0:
       strcpy(info->status, "STOPPED");
@@ -213,7 +309,7 @@ FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
 
   // Read sequence number
   ODBSEQ seq_info;
-  if (cnc_rdseqnum(libh, &seq_info) == EW_OK) {
+  if (cnc_rdseqnum(handle, &seq_info) == EW_OK) {
     info->sequence_number = seq_info.data;
     info->program_line = (int)seq_info.data;
   } else {
@@ -224,7 +320,7 @@ FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
   // Read position information (simplified - first axis only for now)
   ODBPOS pos_data;
   short num_axes = 3;
-  if (cnc_rdposition(libh, 0, &num_axes, &pos_data) == EW_OK) {
+  if (cnc_rdposition(handle, 0, &num_axes, &pos_data) == EW_OK) {
     // Position data is in the 'data' field, scaled by decimal places
     double scale = 1.0;
     if (pos_data.abs.dec > 0) {
@@ -247,7 +343,7 @@ FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
 
   // Read speed information
   ODBSPEED speed_data;
-  if (cnc_rdspeed(libh, 0, &speed_data) == EW_OK) {
+  if (cnc_rdspeed(handle, 0, &speed_data) == EW_OK) {
     info->speed.feed_rate = speed_data.actf.data;
     info->speed.spindle_speed = speed_data.acts.data;
   } else {
@@ -256,12 +352,34 @@ FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
 
   // Read alarm information
   ODBALM alarm_data;
-  if (cnc_alarm(libh, &alarm_data) == EW_OK) {
+  if (cnc_alarm(handle, &alarm_data) == EW_OK) {
     info->alarm.alarm_status = alarm_data.data;
     info->alarm.has_alarm = (alarm_data.data != 0) ? 1 : 0;
   } else {
     memset(&info->alarm, 0, sizeof(AlarmInfo));
   }
+
+  return FOCAS_OK;
+}
+
+FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
+  unsigned short libh;
+  FocasResult result = FOCAS_OK;
+
+  // Initialize info structure
+  memset(info, 0, sizeof(MachineInfo));
+  info->last_updated = time(NULL);
+
+  // Connect to machine
+  short connect_result = cnc_allclibhndl3(ip, port, CONNECTION_TIMEOUT, &libh);
+  if (connect_result != EW_OK) {
+    printf("Connection to %s:%d failed: %s (FOCAS error %d)\n", 
+           ip, port, get_connection_error_details(connect_result), connect_result);
+    return FOCAS_CONNECTION_FAILED;
+  }
+
+  // Use the optimized function with the temporary handle
+  result = read_machine_info_from_handle(libh, info);
 
   // Cleanup
   cnc_freelibhndl(libh);
@@ -287,8 +405,39 @@ FocasResult connection_pool_read_all_info(ConnectionPool *pool,
 
     // Copy machine info
     MachineInfo *info = &multi_info->machines[multi_info->machine_count];
+    FocasResult result = FOCAS_CONNECTION_FAILED;
 
-    FocasResult result = read_machine_info(machine->ip, machine->port, info);
+    // Try to use persistent connection first
+    if (machine->state == CONN_CONNECTED && machine->handle != 0) {
+      result = read_machine_info_from_handle(machine->handle, info);
+      if (result == FOCAS_OK) {
+        machine->last_activity = time(NULL);
+      } else {
+        // Connection might be stale, try to reconnect
+        printf("Warning: Persistent connection to %s failed, attempting reconnect...\n", 
+               machine->friendly_name);
+        connection_pool_disconnect_machine(pool, i);
+        connection_pool_connect_machine(pool, i);
+        
+        // Retry with new connection
+        if (machine->state == CONN_CONNECTED && machine->handle != 0) {
+          result = read_machine_info_from_handle(machine->handle, info);
+          if (result == FOCAS_OK) {
+            machine->last_activity = time(NULL);
+          }
+        }
+      }
+    } else {
+      // Not connected, try to connect and read
+      if (connection_pool_connect_machine(pool, i) == FOCAS_OK) {
+        if (machine->handle != 0) {
+          result = read_machine_info_from_handle(machine->handle, info);
+          if (result == FOCAS_OK) {
+            machine->last_activity = time(NULL);
+          }
+        }
+      }
+    }
 
     if (result == FOCAS_OK) {
       machine->last_info = *info;
@@ -300,9 +449,12 @@ FocasResult connection_pool_read_all_info(ConnectionPool *pool,
       if (machine->info_valid) {
         *info = machine->last_info;
         multi_info->successful_reads++;
+        printf("Using cached data for %s\n", machine->friendly_name);
       } else {
         multi_info->failed_reads++;
         pool->failed_operations++;
+        printf("Failed to read from %s, no cached data available\n", 
+               machine->friendly_name);
         continue; // Skip this machine
       }
     }
