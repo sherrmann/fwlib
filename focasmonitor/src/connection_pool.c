@@ -174,6 +174,8 @@ FocasResult connection_pool_connect_machine(ConnectionPool *pool,
   machine->state = CONN_CONNECTING;
 
   // Attempt connection using FOCAS
+  printf("Attempting to connect to %s (%s:%d)...\n", 
+         machine->friendly_name, machine->ip, machine->port);
   short result = cnc_allclibhndl3(machine->ip, machine->port,
                                   CONNECTION_TIMEOUT, &machine->handle);
 
@@ -184,6 +186,7 @@ FocasResult connection_pool_connect_machine(ConnectionPool *pool,
     machine->retry_count = 0;
     strcpy(machine->last_error, "Connected successfully");
     pool->total_connections++;
+    printf("✓ Successfully connected to %s\n", machine->friendly_name);
 
     return FOCAS_OK;
   } else {
@@ -194,6 +197,9 @@ FocasResult connection_pool_connect_machine(ConnectionPool *pool,
     const char* error_msg = get_connection_error_details(result);
     snprintf(machine->last_error, sizeof(machine->last_error),
              "Connection failed: %s (FOCAS error %d)", error_msg, result);
+    
+    printf("✗ Connection failed for %s: %s (FOCAS error %d)\n", 
+           machine->friendly_name, error_msg, result);
 
     return FOCAS_CONNECTION_FAILED;
   }
@@ -453,8 +459,8 @@ FocasResult connection_pool_read_all_info(ConnectionPool *pool,
       } else {
         multi_info->failed_reads++;
         pool->failed_operations++;
-        printf("Failed to read from %s, no cached data available\n", 
-               machine->friendly_name);
+        printf("Failed to read from %s: %s (no cached data available)\n", 
+               machine->friendly_name, machine->last_error);
         continue; // Skip this machine
       }
     }
