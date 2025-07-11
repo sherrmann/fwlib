@@ -12,7 +12,7 @@ const Config default_config = {"", 8193, "all", 0};
 #include <string.h>
 
 #ifdef _WIN32
-enum ARG_KEY{CONFIG, PORT, IP, INFO, VERBOSE};
+enum ARG_KEY { CONFIG, PORT, IP, INFO, VERBOSE };
 const char *V_CONFIG = "--config=";
 const char *V_PORT = "--port=";
 const char *V_IP = "--ip=";
@@ -30,7 +30,7 @@ int read_arg_config(int argc, char *argv[], Config *conf) {
   char *arg;
   char v[100] = "";
   // ip port config
-  for (i = 1; j = 0, arg=argv[i], i < argc; i++) {
+  for (i = 1; j = 0, arg = argv[i], i < argc; i++) {
     enum ARG_KEY key;
     if (strncmp(arg, V_CONFIG, l = strlen(V_CONFIG)) == 0) {
       key = CONFIG;
@@ -48,34 +48,34 @@ int read_arg_config(int argc, char *argv[], Config *conf) {
       fprintf(stderr, "unrecognized argument: \"%s\"\n", arg);
       return 1;
     }
-    for (char *c = arg+l; *c != '\0' && j < 100; j++, c++) {
+    for (char *c = arg + l; *c != '\0' && j < 100; j++, c++) {
       v[j] = *c;
     }
     v[j] = '\0';
     switch (key) {
-      case CONFIG: {
-        if (read_file_config(v, conf)) {
-          return 1;
-        }
-        break;
+    case CONFIG: {
+      if (read_file_config(v, conf)) {
+        return 1;
       }
-      case PORT: {
-        if ((tmp = atoi(v)) < 1 || tmp > 65535) { 
-          // invalid port
-          fprintf(stderr, "Invalid port argument: \"%s\"\n", v);
-          return 1;
-        }
-        port = tmp;
-        break;
+      break;
+    }
+    case PORT: {
+      if ((tmp = atoi(v)) < 1 || tmp > 65535) {
+        // invalid port
+        fprintf(stderr, "Invalid port argument: \"%s\"\n", v);
+        return 1;
       }
-      case IP: {
-        snprintf(ip, 100, "%s", v);
-        break;
-      }
-      case INFO: {
-        snprintf(conf->info_type, 20, "%s", v);
-        break;
-      }
+      port = tmp;
+      break;
+    }
+    case IP: {
+      snprintf(ip, 100, "%s", v);
+      break;
+    }
+    case INFO: {
+      snprintf(conf->info_type, 20, "%s", v);
+      break;
+    }
     }
   }
   if (port != 0) {
@@ -102,28 +102,28 @@ int read_arg_config(int argc, char *argv[], Config *conf) {
 
   while ((c = getopt_long(argc, argv, "hpc", options, &i)) != -1) {
     switch (c) {
-      case 'h':
-        ip_flag = true;
-        snprintf(ip, 100, "%s", optarg);
-        break;
+    case 'h':
+      ip_flag = true;
+      snprintf(ip, 100, "%s", optarg);
+      break;
 
-      case 'p':
-        if ((tmp = atoi(optarg)) != 0 && tmp > 0 && tmp < 65535) {
-          port = tmp;
-        } else {
-          fprintf(stderr, "invalid port: \"%s\"\n", optarg);
-          return 1;
-        }
-        break;
-      case 'c':
-        if (read_file_config(optarg, conf)) {
-          return 1;
-        }
-        break;
-
-      case '?':
-        /* getopt_long already printed an error message. */
+    case 'p':
+      if ((tmp = atoi(optarg)) != 0 && tmp > 0 && tmp < 65535) {
+        port = tmp;
+      } else {
+        fprintf(stderr, "invalid port: \"%s\"\n", optarg);
         return 1;
+      }
+      break;
+    case 'c':
+      if (read_file_config(optarg, conf)) {
+        return 1;
+      }
+      break;
+
+    case '?':
+      /* getopt_long already printed an error message. */
+      return 1;
     }
   }
 

@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,7 +27,8 @@ int main(int argc, char *argv[]) {
 #endif
 
   printf("connecting to machine at %s:%d...\n", MACHINE_HOST, MACHINE_PORT);
-  if ((ret = cnc_allclibhndl3(MACHINE_HOST, MACHINE_PORT, 10, &libh)) != EW_OK) {
+  if ((ret = cnc_allclibhndl3(MACHINE_HOST, MACHINE_PORT, 10, &libh)) !=
+      EW_OK) {
     fprintf(stderr, "Failed to connect to cnc! (%d)\n", ret);
     ret = 1;
     goto cleanup;

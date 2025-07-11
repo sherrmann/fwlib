@@ -3,9 +3,9 @@
 #include <string.h>
 
 #include "config.h"
-#include "util.h" 
-#include "machine_info.h"
 #include "fwlib32.h"
+#include "machine_info.h"
+#include "util.h"
 
 void show_usage(const char *program_name) {
   printf("FANUC FOCAS Library Example\n");
@@ -15,7 +15,8 @@ void show_usage(const char *program_name) {
   printf("  --port=<port_number>     CNC machine port (default: 8193)\n");
   printf("  --config=<config_file>   Read settings from config file\n");
   printf("  --info=<type>            Information to display:\n");
-  printf("                           all      - All available information (default)\n");
+  printf("                           all      - All available information "
+         "(default)\n");
   printf("                           basic    - Machine ID and status only\n");
   printf("                           program  - Program information\n");
   printf("                           position - Tool position data\n");
@@ -89,9 +90,9 @@ int main(int argc, char *argv[]) {
 
   // Read complete machine information
   FocasResult result = read_complete_machine_info(&conf, &machine_info);
-  
+
   if (result != FOCAS_OK) {
-    printf("Warning: Some information may be incomplete (%s)\n", 
+    printf("Warning: Some information may be incomplete (%s)\n",
            focas_result_to_string(result));
   }
 

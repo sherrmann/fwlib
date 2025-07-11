@@ -4,8 +4,9 @@
 typedef struct config {
   char ip[100];
   int port;
-  char info_type[20];  // "all", "basic", "program", "status", "position", "speed", "alarm"
-  int verbose;         // 0=normal, 1=verbose output
+  char info_type[20]; // "all", "basic", "program", "status", "position",
+                      // "speed", "alarm"
+  int verbose;        // 0=normal, 1=verbose output
 } Config;
 
 extern const Config default_config;
