@@ -320,9 +320,28 @@ int main(int argc, char *argv[]) {
   // Connect to all machines
   printf("Connecting to %d machines...\n", g_pool.machine_count);
   result = connection_pool_connect_all(&g_pool);
-  if (result != FOCAS_OK && conf.verbose) {
-    printf("Warning: Some connections may have failed: %s\n",
-           focas_result_to_string(result));
+  
+  // Count successful and failed connections
+  int connected = 0, failed = 0;
+  for (int i = 0; i < g_pool.machine_count; i++) {
+    if (g_pool.machines[i].state == CONN_CONNECTED) {
+      connected++;
+    } else {
+      failed++;
+    }
+  }
+  
+  if (connected > 0 && failed == 0) {
+    printf("✓ All %d machines connected successfully\n", connected);
+  } else if (connected > 0 && failed > 0) {
+    printf("⚠ Partial success: %d/%d machines connected (%d failed)\n", 
+           connected, g_pool.machine_count, failed);
+    printf("  Monitoring will continue with available machines\n");
+    printf("  Failed connections will be retried automatically\n");
+  } else {
+    printf("✗ All connection attempts failed (%d machines unreachable)\n", failed);
+    printf("  Check network connectivity and machine configurations\n");
+    printf("  Monitoring will continue and retry connections automatically\n");
   }
 
   // Monitor machines
