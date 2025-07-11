@@ -1,53 +1,54 @@
 #include "focasmonitor.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
 const char *focas_result_to_string(FocasResult result) {
   switch (result) {
-  case FOCAS_OK:
-    return "Success";
-  case FOCAS_CONNECTION_FAILED:
-    return "Connection failed";
-  case FOCAS_PROGRAM_READ_FAILED:
-    return "Program read failed";
-  case FOCAS_STATUS_READ_FAILED:
-    return "Status read failed";
-  case FOCAS_ID_READ_FAILED:
-    return "ID read failed";
-  case FOCAS_SEQUENCE_READ_FAILED:
-    return "Sequence read failed";
-  case FOCAS_POSITION_READ_FAILED:
-    return "Position read failed";
-  case FOCAS_SPEED_READ_FAILED:
-    return "Speed read failed";
-  case FOCAS_ALARM_READ_FAILED:
-    return "Alarm read failed";
-  case FOCAS_POOL_FULL:
-    return "Connection pool full";
-  case FOCAS_MACHINE_NOT_FOUND:
-    return "Machine not found";
-  case FOCAS_INVALID_CONFIG:
-    return "Invalid configuration";
-  default:
-    return "Unknown error";
+    case FOCAS_OK:
+      return "Success";
+    case FOCAS_CONNECTION_FAILED:
+      return "Connection failed";
+    case FOCAS_PROGRAM_READ_FAILED:
+      return "Program read failed";
+    case FOCAS_STATUS_READ_FAILED:
+      return "Status read failed";
+    case FOCAS_ID_READ_FAILED:
+      return "ID read failed";
+    case FOCAS_SEQUENCE_READ_FAILED:
+      return "Sequence read failed";
+    case FOCAS_POSITION_READ_FAILED:
+      return "Position read failed";
+    case FOCAS_SPEED_READ_FAILED:
+      return "Speed read failed";
+    case FOCAS_ALARM_READ_FAILED:
+      return "Alarm read failed";
+    case FOCAS_POOL_FULL:
+      return "Connection pool full";
+    case FOCAS_MACHINE_NOT_FOUND:
+      return "Machine not found";
+    case FOCAS_INVALID_CONFIG:
+      return "Invalid configuration";
+    default:
+      return "Unknown error";
   }
 }
 
 const char *connection_state_to_string(ConnectionState state) {
   switch (state) {
-  case CONN_DISCONNECTED:
-    return "Disconnected";
-  case CONN_CONNECTING:
-    return "Connecting";
-  case CONN_CONNECTED:
-    return "Connected";
-  case CONN_ERROR:
-    return "Error";
-  case CONN_BUSY:
-    return "Busy";
-  default:
-    return "Unknown";
+    case CONN_DISCONNECTED:
+      return "Disconnected";
+    case CONN_CONNECTING:
+      return "Connecting";
+    case CONN_CONNECTED:
+      return "Connected";
+    case CONN_ERROR:
+      return "Error";
+    case CONN_BUSY:
+      return "Busy";
+    default:
+      return "Unknown";
   }
 }
 

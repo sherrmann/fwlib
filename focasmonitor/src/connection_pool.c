@@ -1,4 +1,5 @@
 #include "focasmonitor.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +15,7 @@
 #include "fwlib32.h"
 
 // Convert FOCAS error codes to human-readable messages
-const char* focas_error_to_string(short error_code) {
+const char *focas_error_to_string(short error_code) {
   switch (error_code) {
     case EW_OK:
       return "No error";
@@ -86,12 +87,14 @@ const char* focas_error_to_string(short error_code) {
 }
 
 // Get detailed error information for connection failures
-const char* get_connection_error_details(short error_code) {
+const char *get_connection_error_details(short error_code) {
   switch (error_code) {
     case EW_SOCKET:
       return "Network connection failed\n"
-             "  > Check if machine IP address is correct and reachable (try: ping <ip>)\n"
-             "  > Verify port 8193 is open on the machine (try: telnet <ip> 8193)\n"
+             "  > Check if machine IP address is correct and reachable (try: "
+             "ping <ip>)\n"
+             "  > Verify port 8193 is open on the machine (try: telnet <ip> "
+             "8193)\n"
              "  > Ensure machine is powered on and network cable is connected\n"
              "  > Check if firewall is blocking the connection";
     case EW_PROTOCOL:
@@ -150,27 +153,30 @@ const char* get_connection_error_details(short error_code) {
 }
 
 // Ping check utility function for network diagnostics
-int ping_host(const char* ip_address) {
+int ping_host(const char *ip_address) {
 #ifdef _WIN32
   char command[256];
-  snprintf(command, sizeof(command), "ping -n 1 -w 1000 %s >nul 2>&1", ip_address);
+  snprintf(command, sizeof(command), "ping -n 1 -w 1000 %s >nul 2>&1",
+           ip_address);
   return system(command);
 #else
   char command[256];
-  snprintf(command, sizeof(command), "ping -c 1 -W 1 %s >/dev/null 2>&1", ip_address);
+  snprintf(command, sizeof(command), "ping -c 1 -W 1 %s >/dev/null 2>&1",
+           ip_address);
   return system(command);
 #endif
 }
 
 // Perform basic network diagnostics
-void perform_network_diagnostics(const char* machine_name, const char* ip, int port, bool verbose) {
+void perform_network_diagnostics(const char *machine_name, const char *ip,
+                                 int port, bool verbose) {
   if (verbose) {
     printf("  > Running network diagnostics for %s...\n", machine_name);
-    
+
     // Test ping connectivity
     printf("    Testing ping connectivity to %s...", ip);
     fflush(stdout);
-    
+
     int ping_result = ping_host(ip);
     if (ping_result == 0) {
       printf(" [OK] Host is reachable\n");
@@ -183,17 +189,19 @@ void perform_network_diagnostics(const char* machine_name, const char* ip, int p
       printf("      * Ensure you're on the correct network segment/VLAN\n");
       return; // Skip port test if ping fails
     }
-    
+
     // Test port connectivity (simplified check)
 #ifdef _WIN32
     printf("    Testing port %d connectivity...", port);
     fflush(stdout);
-    
+
     char telnet_cmd[256];
-    snprintf(telnet_cmd, sizeof(telnet_cmd), 
-             "powershell -Command \"try { $socket = New-Object System.Net.Sockets.TcpClient; $socket.Connect('%s', %d); $socket.Close(); exit 0 } catch { exit 1 }\" >nul 2>&1", 
+    snprintf(telnet_cmd, sizeof(telnet_cmd),
+             "powershell -Command \"try { $socket = New-Object "
+             "System.Net.Sockets.TcpClient; $socket.Connect('%s', %d); "
+             "$socket.Close(); exit 0 } catch { exit 1 }\" >nul 2>&1",
              ip, port);
-    
+
     int port_result = system(telnet_cmd);
     if (port_result == 0) {
       printf(" [OK] Port %d is open\n", port);
@@ -202,12 +210,13 @@ void perform_network_diagnostics(const char* machine_name, const char* ip, int p
       printf("    This suggests:\n");
       printf("      * FOCAS service may not be running on the machine\n");
       printf("      * Port %d is blocked by firewall\n", port);
-      printf("      * Machine is not configured for FOCAS ethernet communication\n");
+      printf("      * Machine is not configured for FOCAS ethernet "
+             "communication\n");
     }
 #else
     printf("    Port connectivity test not available on this platform\n");
 #endif
-    
+
     printf("\n");
   }
 }
@@ -275,8 +284,9 @@ FocasResult connection_pool_connect_machine(ConnectionPool *pool,
   machine->state = CONN_CONNECTING;
 
   // Attempt connection using FOCAS
-  printf("> Connecting to %s at %s:%d (timeout: %ds)...\n", 
-         machine->friendly_name, machine->ip, machine->port, CONNECTION_TIMEOUT);
+  printf("> Connecting to %s at %s:%d (timeout: %ds)...\n",
+         machine->friendly_name, machine->ip, machine->port,
+         CONNECTION_TIMEOUT);
   short result = cnc_allclibhndl3(machine->ip, machine->port,
                                   CONNECTION_TIMEOUT, &machine->handle);
 
@@ -287,31 +297,32 @@ FocasResult connection_pool_connect_machine(ConnectionPool *pool,
     machine->retry_count = 0;
     strcpy(machine->last_error, "Connected successfully");
     pool->total_connections++;
-    printf("[OK] Successfully connected to %s (handle: %d)\n", 
+    printf("[OK] Successfully connected to %s (handle: %d)\n",
            machine->friendly_name, machine->handle);
 
     return FOCAS_OK;
   } else {
     machine->state = CONN_ERROR;
     machine->retry_count++;
-    
+
     // Use detailed error mapping
-    const char* error_msg = get_connection_error_details(result);
+    const char *error_msg = get_connection_error_details(result);
     snprintf(machine->last_error, sizeof(machine->last_error),
              "FOCAS error %d: %s", result, focas_error_to_string(result));
-    
-    printf("[FAIL] Connection to %s FAILED (FOCAS error %d: %s)\n", 
+
+    printf("[FAIL] Connection to %s FAILED (FOCAS error %d: %s)\n",
            machine->friendly_name, result, focas_error_to_string(result));
-    
+
     // Perform network diagnostics for socket errors
     if (result == EW_SOCKET && diagnose) {
-      perform_network_diagnostics(machine->friendly_name, machine->ip, machine->port, true);
+      perform_network_diagnostics(machine->friendly_name, machine->ip,
+                                  machine->port, true);
     } else {
       printf("  Troubleshooting steps:\n");
-      
+
       // Print the detailed error message with proper indentation
-      char* msg_copy = strdup(error_msg);
-      char* line = strtok(msg_copy, "\n");
+      char *msg_copy = strdup(error_msg);
+      char *line = strtok(msg_copy, "\n");
       while (line != NULL) {
         printf("  %s\n", line);
         line = strtok(NULL, "\n");
@@ -362,7 +373,8 @@ FocasResult connection_pool_connect_all(ConnectionPool *pool, bool diagnose) {
   // Print connection summary
   if (failed > 0) {
     printf("===============================================================\n");
-    printf("CONNECTION SUMMARY: %d successful, %d failed\n", successful, failed);
+    printf("CONNECTION SUMMARY: %d successful, %d failed\n", successful,
+           failed);
     if (failed == pool->machine_count) {
       printf("WARNING: All machines failed to connect. Common solutions:\n");
       printf("  * Verify machine IP addresses are correct\n");
@@ -372,7 +384,8 @@ FocasResult connection_pool_connect_all(ConnectionPool *pool, bool diagnose) {
       printf("  * Check firewall settings\n");
       printf("  TIP: Use --diagnose flag for automatic network diagnostics\n");
     }
-    printf("===============================================================\n\n");
+    printf(
+        "===============================================================\n\n");
   }
 
   return (failed == 0) ? FOCAS_OK : FOCAS_CONNECTION_FAILED;
@@ -390,7 +403,8 @@ FocasResult connection_pool_disconnect_all(ConnectionPool *pool) {
   return FOCAS_OK;
 }
 
-FocasResult read_machine_info_from_handle(unsigned short handle, MachineInfo *info) {
+FocasResult read_machine_info_from_handle(unsigned short handle,
+                                          MachineInfo *info) {
   if (handle == 0 || !info) {
     return FOCAS_CONNECTION_FAILED;
   }
@@ -413,7 +427,7 @@ FocasResult read_machine_info_from_handle(unsigned short handle, MachineInfo *in
   if (cnc_rdprgnum(handle, &prgnum) == EW_OK) {
     snprintf(info->program_name, sizeof(info->program_name), "O%04d",
              prgnum.data);
-    info->program_number = (int)prgnum.data;
+    info->program_number = (int) prgnum.data;
   } else {
     strcpy(info->program_name, "UNKNOWN");
     info->program_number = 0;
@@ -423,21 +437,21 @@ FocasResult read_machine_info_from_handle(unsigned short handle, MachineInfo *in
   ODBST status;
   if (cnc_statinfo(handle, &status) == EW_OK) {
     switch (status.run) {
-    case 0:
-      strcpy(info->status, "STOPPED");
-      break;
-    case 1:
-      strcpy(info->status, "RUNNING");
-      break;
-    case 2:
-      strcpy(info->status, "PAUSED");
-      break;
-    case 3:
-      strcpy(info->status, "ALARM");
-      break;
-    default:
-      snprintf(info->status, sizeof(info->status), "UNKNOWN(%d)", status.run);
-      break;
+      case 0:
+        strcpy(info->status, "STOPPED");
+        break;
+      case 1:
+        strcpy(info->status, "RUNNING");
+        break;
+      case 2:
+        strcpy(info->status, "PAUSED");
+        break;
+      case 3:
+        strcpy(info->status, "ALARM");
+        break;
+      default:
+        snprintf(info->status, sizeof(info->status), "UNKNOWN(%d)", status.run);
+        break;
     }
 
     // Add motion status if available
@@ -452,7 +466,7 @@ FocasResult read_machine_info_from_handle(unsigned short handle, MachineInfo *in
   ODBSEQ seq_info;
   if (cnc_rdseqnum(handle, &seq_info) == EW_OK) {
     info->sequence_number = seq_info.data;
-    info->program_line = (int)seq_info.data;
+    info->program_line = (int) seq_info.data;
   } else {
     info->sequence_number = 0;
     info->program_line = 0;
@@ -514,8 +528,8 @@ FocasResult read_machine_info(const char *ip, int port, MachineInfo *info) {
   // Connect to machine
   short connect_result = cnc_allclibhndl3(ip, port, CONNECTION_TIMEOUT, &libh);
   if (connect_result != EW_OK) {
-    printf("Connection to %s:%d failed: %s (FOCAS error %d)\n", 
-           ip, port, get_connection_error_details(connect_result), connect_result);
+    printf("Connection to %s:%d failed: %s (FOCAS error %d)\n", ip, port,
+           get_connection_error_details(connect_result), connect_result);
     return FOCAS_CONNECTION_FAILED;
   }
 
@@ -555,11 +569,12 @@ FocasResult connection_pool_read_all_info(ConnectionPool *pool,
         machine->last_activity = time(NULL);
       } else {
         // Connection might be stale, try to reconnect
-        printf("WARNING: Persistent connection to %s failed, attempting automatic reconnection...\n", 
+        printf("WARNING: Persistent connection to %s failed, attempting "
+               "automatic reconnection...\n",
                machine->friendly_name);
         connection_pool_disconnect_machine(pool, i);
         connection_pool_connect_machine(pool, i, false);
-        
+
         // Retry with new connection
         if (machine->state == CONN_CONNECTED && machine->handle != 0) {
           result = read_machine_info_from_handle(machine->handle, info);
@@ -594,9 +609,10 @@ FocasResult connection_pool_read_all_info(ConnectionPool *pool,
       } else {
         multi_info->failed_reads++;
         pool->failed_operations++;
-        printf("WARNING: Failed to read from %s: %s\n", 
-               machine->friendly_name, machine->last_error);
-        printf("  No cached data available - machine data will be missing from this cycle\n");
+        printf("WARNING: Failed to read from %s: %s\n", machine->friendly_name,
+               machine->last_error);
+        printf("  No cached data available - machine data will be missing from "
+               "this cycle\n");
         continue; // Skip this machine
       }
     }

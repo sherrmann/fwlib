@@ -4,7 +4,8 @@
 #include <stdbool.h>
 #include <time.h>
 
-// Maximum number of machines per connection pool (lowered for better performance)
+// Maximum number of machines per connection pool (lowered for better
+// performance)
 #define MAX_MACHINES 25
 
 // Connection timeout in seconds
@@ -152,12 +153,13 @@ void connection_pool_cleanup(ConnectionPool *pool);
 
 // Machine information reading
 FocasResult read_machine_info(const char *ip, int port, MachineInfo *info);
-FocasResult read_machine_info_from_handle(unsigned short handle, MachineInfo *info);
+FocasResult read_machine_info_from_handle(unsigned short handle,
+                                          MachineInfo *info);
 FocasResult read_complete_machine_info(Config *conf, MachineInfo *info);
 
 // Error handling and diagnostics
-const char* focas_error_to_string(short error_code);
-const char* get_connection_error_details(short error_code);
+const char *focas_error_to_string(short error_code);
+const char *get_connection_error_details(short error_code);
 
 // Output formatting
 void print_machine_info(const MachineInfo *info, const char *machine_name);

@@ -1,0 +1,40 @@
+# LLVM clang-format configuration for FANUC FOCAS project
+# Based on LLVM style with some customizations for embedded C development
+
+BasedOnStyle: LLVM
+
+# Basic formatting
+TabWidth: 2
+IndentWidth: 2
+UseTab: Never
+ColumnLimit: 80
+
+# C-specific settings
+Standard: Cpp11
+IndentCaseLabels: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Alignment
+AlignConsecutiveDeclarations: false
+AlignConsecutiveAssignments: false
+AlignTrailingComments: true
+
+# Spacing
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Line breaks
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+BreakBeforeBinaryOperators: NonAssignment
+
+# Comments
+ReflowComments: true
+
+# Includes
+SortIncludes: true
+IncludeBlocks: Regroup
