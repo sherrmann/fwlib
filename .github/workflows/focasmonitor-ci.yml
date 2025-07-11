@@ -17,6 +17,14 @@ jobs:
       with:
         submodules: recursive
         
+    - name: Cache APT packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt
+        key: ${{ runner.os }}-apt-${{ hashFiles('**/focasmonitor-ci.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+        
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -48,6 +56,36 @@ jobs:
       with:
         submodules: recursive
         
+    - name: Cache APT packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt
+        key: ${{ runner.os }}-apt-${{ hashFiles('**/focasmonitor-ci.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+          
+    - name: Cache Git submodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          examples/c/extern/googletest
+          examples/c/extern/libconfig
+          examples/c/extern/fff
+        key: ${{ runner.os }}-submodules-${{ hashFiles('.gitmodules') }}
+        restore-keys: |
+          ${{ runner.os }}-submodules-
+          
+    - name: Cache MinGW build cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          examples/c/build-windows
+          examples/c/extern/libconfig/build
+          focasmonitor/build-windows
+        key: ${{ runner.os }}-mingw-build-${{ hashFiles('examples/c/**/*.c', 'examples/c/**/*.h', 'focasmonitor/**/*.c', 'focasmonitor/**/*.h', 'examples/c/**/CMakeLists.txt', 'focasmonitor/**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-mingw-build-
+          
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -57,6 +95,14 @@ jobs:
       run: |
         cd examples/c
         echo "🔧 Building legacy FANUC examples..."
+        
+        # Initialize submodules if not cached
+        if [ ! -d "extern/libconfig/.git" ]; then
+          echo "🔗 Initializing git submodules..."
+          git submodule update --init --recursive
+        else
+          echo "✅ Using cached submodules"
+        fi
         
         # Set build environment variables
         export BUILD_TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -75,8 +121,10 @@ jobs:
         test -f build-windows/bin/fanuc_example.exe
         file build-windows/bin/fanuc_example.exe | grep "PE32"
         
-        # Create package with all DLLs
-        make package
+        # Verify package was created by build script
+        test -d windows-release
+        echo "📦 Package contents:"
+        ls -la windows-release/
         
         echo "✅ Legacy examples built and packaged successfully"
         
@@ -305,6 +353,36 @@ jobs:
       with:
         submodules: recursive
         
+    - name: Cache APT packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt
+        key: ${{ runner.os }}-apt-${{ hashFiles('**/focasmonitor-ci.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+          
+    - name: Cache Git submodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          examples/c/extern/googletest
+          examples/c/extern/libconfig
+          examples/c/extern/fff
+        key: ${{ runner.os }}-submodules-${{ hashFiles('.gitmodules') }}
+        restore-keys: |
+          ${{ runner.os }}-submodules-
+          
+    - name: Cache MinGW build cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          examples/c/build-windows
+          examples/c/extern/libconfig/build
+          focasmonitor/build-windows
+        key: ${{ runner.os }}-mingw-build-${{ hashFiles('examples/c/**/*.c', 'examples/c/**/*.h', 'focasmonitor/**/*.c', 'focasmonitor/**/*.h', 'examples/c/**/CMakeLists.txt', 'focasmonitor/**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-mingw-build-
+        
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -314,6 +392,14 @@ jobs:
       run: |
         echo "🚀 Creating release packages..."
         
+        # Initialize submodules if not cached
+        if [ ! -d "examples/c/extern/libconfig/.git" ]; then
+          echo "🔗 Initializing git submodules..."
+          git submodule update --init --recursive
+        else
+          echo "✅ Using cached submodules"
+        fi
+        
         # Generate release version from timestamp and commit
         export RELEASE_VERSION="build-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
         echo "📦 Release version: $RELEASE_VERSION"
@@ -322,7 +408,6 @@ jobs:
         cd examples/c
         chmod +x build-windows.sh
         ./build-windows.sh
-        make package
         cd ../..
         
         # Build focasmonitor
